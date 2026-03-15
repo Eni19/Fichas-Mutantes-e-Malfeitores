@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Trash2, Plus, Dice6 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -20,6 +19,9 @@ interface Weapon {
 }
 
 interface InventoryPanelProps {
+  isOpen: boolean;
+  showToggle: boolean;
+  onToggle: () => void;
   inventory: InventoryItem[];
   onAddItem: () => void;
   onUpdateItem: (id: string, field: keyof InventoryItem, value: string) => void;
@@ -33,6 +35,9 @@ interface InventoryPanelProps {
 }
 
 export default function InventoryPanel({
+  isOpen,
+  showToggle,
+  onToggle,
   inventory,
   onAddItem,
   onUpdateItem,
@@ -44,7 +49,6 @@ export default function InventoryPanel({
   onRollPrimaryDamage,
   onRollSecondaryDamage,
 }: InventoryPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const damageDice = [4, 6, 8, 10, 12, 20];
 
   const autoResizeTextarea = (target: HTMLTextAreaElement) => {
@@ -54,23 +58,27 @@ export default function InventoryPanel({
 
   const handleRollAndClose = (onRoll: () => void) => {
     onRoll();
-    setIsOpen(false);
+    if (isOpen) onToggle();
   };
 
   return (
     <>
       {/* Toggle Button - Always visible, positioned outside the panel */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="group fixed right-0 top-16 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300"
-      >
-        <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
-          {isOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </span>
-        <span className="pr-4 text-sm font-display uppercase tracking-wide whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-          Equipamentos
-        </span>
-      </button>
+      {showToggle && (
+        <button
+          onClick={onToggle}
+          className={`group fixed top-16 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
+            isOpen ? 'right-[21rem]' : 'right-0'
+          }`}
+        >
+          <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
+            {isOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          </span>
+          <span className="pr-4 text-sm font-display uppercase tracking-wide whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+            Equipamentos
+          </span>
+        </button>
+      )}
 
       {/* Panel Content */}
       <div className={`fixed right-0 top-0 h-screen bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[21rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>

@@ -147,6 +147,7 @@ const TRAINING_LABELS: Record<Pericia['training'], string> = {
 export default function CharacterSheet() {
   const [pendingRoll, setPendingRoll] = useState<SkillRollRequest | null>(null);
   const [pendingDamageRoll, setPendingDamageRoll] = useState<DamageRollRequest | null>(null);
+  const [openSidebar, setOpenSidebar] = useState<'inventory' | 'insanity' | null>(null);
   const [character, setCharacter] = useState<CharacterData>({
     name: 'Seu Personagem',
     attributes: {
@@ -372,6 +373,14 @@ export default function CharacterSheet() {
     });
   };
 
+  const toggleInventoryPanel = () => {
+    setOpenSidebar((prev) => (prev === 'inventory' ? null : 'inventory'));
+  };
+
+  const toggleInsanityPanel = () => {
+    setOpenSidebar((prev) => (prev === 'insanity' ? null : 'insanity'));
+  };
+
   const handleAddInsanity = (insanity: Insanity) => {
     setCharacter({ ...character, insanities: [...character.insanities, insanity] });
   };
@@ -585,6 +594,9 @@ export default function CharacterSheet() {
 
       {/* Inventory Panel - Retractable Sidebar */}
       <InventoryPanel
+        isOpen={openSidebar === 'inventory'}
+        showToggle={openSidebar !== 'insanity'}
+        onToggle={toggleInventoryPanel}
         inventory={character.inventory}
         onAddItem={handleAddInventoryItem}
         onUpdateItem={handleUpdateInventoryItem}
@@ -599,6 +611,9 @@ export default function CharacterSheet() {
 
       {/* Insanity Panel - Second Retractable Sidebar */}
       <InsanityPanel
+        isOpen={openSidebar === 'insanity'}
+        showToggle={openSidebar !== 'inventory'}
+        onToggle={toggleInsanityPanel}
         insanities={character.insanities}
         paranormalPowers={character.paranormalPowers}
         onInsanityAdd={handleAddInsanity}

@@ -14,6 +14,9 @@ interface ParanormalPower {
 }
 
 interface InsanityPanelProps {
+  isOpen: boolean;
+  showToggle: boolean;
+  onToggle: () => void;
   insanities: Insanity[];
   paranormalPowers: ParanormalPower[];
   onInsanityAdd: (insanity: Insanity) => void;
@@ -25,6 +28,9 @@ interface InsanityPanelProps {
 }
 
 export default function InsanityPanel({
+  isOpen,
+  showToggle,
+  onToggle,
   insanities,
   paranormalPowers,
   onInsanityAdd,
@@ -34,7 +40,6 @@ export default function InsanityPanel({
   onPowerRemove,
   onPowerUpdate,
 }: InsanityPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [showInsanityForm, setShowInsanityForm] = useState(false);
   const [showPowerForm, setShowPowerForm] = useState(false);
   const [newInsanityName, setNewInsanityName] = useState('');
@@ -78,17 +83,21 @@ export default function InsanityPanel({
   return (
     <div className="fixed right-0 top-0 h-screen z-30">
       {/* Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="group fixed right-0 top-28 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300"
-      >
-        <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
-          <ChevronLeft size={20} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </span>
-        <span className="pr-4 text-sm font-display uppercase tracking-wide whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-          Insanidades
-        </span>
-      </button>
+      {showToggle && (
+        <button
+          onClick={onToggle}
+          className={`group fixed top-28 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300 ${
+            isOpen ? 'right-80' : 'right-0'
+          }`}
+        >
+          <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
+            <ChevronLeft size={20} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </span>
+          <span className="pr-4 text-sm font-display uppercase tracking-wide whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+            Insanidades
+          </span>
+        </button>
+      )}
 
       {/* Panel */}
       <div
