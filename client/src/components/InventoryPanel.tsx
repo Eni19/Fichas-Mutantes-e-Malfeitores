@@ -67,7 +67,7 @@ export default function InventoryPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-16 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
+          className={`group fixed top-16 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-background border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
             isOpen ? 'right-[21rem]' : 'right-0'
           }`}
         >
@@ -81,7 +81,7 @@ export default function InventoryPanel({
       )}
 
       {/* Panel Content */}
-      <div className={`fixed right-0 top-0 h-screen bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[21rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
+      <div className={`fixed right-0 top-0 h-screen bg-background transition-all duration-300 flex flex-col ${isOpen ? 'w-[21rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
 
       {/* Content */}
       {isOpen && (
@@ -169,7 +169,7 @@ export default function InventoryPanel({
               </div>
 
               {/* Secondary Weapon */}
-              <div className="border border-primary bg-black p-2.5 space-y-1.5">
+              <div className="border border-primary bg-background p-2.5 space-y-1.5">
                 <div className="font-display text-sm text-primary uppercase">Secundária</div>
                 <input
                   type="text"
@@ -197,7 +197,7 @@ export default function InventoryPanel({
                     className="flex-1 bg-input border border-primary text-primary text-sm p-1 focus:outline-none"
                   >
                     {damageDice.map((die) => (
-                      <option key={die} value={die} className="bg-black text-primary">
+                      <option key={die} value={die} className="bg-background text-primary">
                         d{die}
                       </option>
                     ))}
@@ -261,7 +261,7 @@ export default function InventoryPanel({
 
               <div className="space-y-2">
                 {inventory.map((item) => (
-                  <div key={item.id} className="border border-primary bg-black p-1.5 space-y-1">
+                  <div key={item.id} className="border border-primary bg-background p-1.5 space-y-1">
                     <div className="flex items-start justify-between gap-2">
                       <input
                         type="text"

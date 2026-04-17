@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Dice6 } from 'lucide-react';
+import { Check, Dice6 } from 'lucide-react';
 
 interface DiceResult {
   formula: string;
@@ -12,9 +12,7 @@ interface SkillRollRequest {
   id: number;
   periciaName: string;
   attributeLabel: string;
-  trainingLabel: string;
-  attributeDie: number;
-  trainingDie: number;
+  totalBonus: number;
 }
 
 interface DamageRollRequest {
@@ -33,8 +31,6 @@ interface DiceRollerProps {
 export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRollerProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [history, setHistory] = useState<DiceResult[]>([]);
-  const [advantageEnabled, setAdvantageEnabled] = useState(false);
-  const [disadvantageEnabled, setDisadvantageEnabled] = useState(false);
   const [displayRolls, setDisplayRolls] = useState<number[]>([]);
   const [displayMessage, setDisplayMessage] = useState<string | null>(null);
   const [displayFlash, setDisplayFlash] = useState<'critical' | 'fail' | null>(null);
@@ -45,23 +41,11 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
   const [customFormula, setCustomFormula] = useState('');
   const [displaySubtitle, setDisplaySubtitle] = useState<string | null>(null);
   const [displayModifier, setDisplayModifier] = useState(0);
+  const [showSkillTotal, setShowSkillTotal] = useState(false);
 
   const diceTypes = [4, 6, 8, 10, 12, 20];
   const maxDice = 10;
   const lastProcessedDamageRollIdRef = useRef<number | null>(null);
-
-  const triggerDisplayOutcome = (firstRoll: number, secondRoll: number) => {
-    if (firstRoll === 1 && secondRoll === 1) {
-      setDisplayMessage('Falha Critica!');
-      setDisplayFlash('fail');
-    } else if (firstRoll === secondRoll && firstRoll >= 6) {
-      setDisplayMessage('Critico!');
-      setDisplayFlash('critical');
-    } else {
-      setDisplayMessage(null);
-      setDisplayFlash(null);
-    }
-  };
 
   const rollCustomDice = () => {
     if (isRolling) return;
@@ -162,11 +146,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
 
     lastProcessedRollIdRef.current = rollRequest.id;
     setDisplayMode('skill');
-    setDisplayModifier(0);
-
-    const diceSides = [rollRequest.attributeDie, rollRequest.trainingDie];
-    if (advantageEnabled) diceSides.push(6);
-    if (disadvantageEnabled) diceSides.push(6);
+    setDisplayModifier(rollRequest.totalBonus);
 
     setDisplayMessage(null);
     setDisplayFlash(null);
@@ -179,36 +159,18 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
       const elapsed = Date.now() - startTime;
 
       if (elapsed < animationDuration) {
-        setDisplayRolls(diceSides.map((sides) => Math.floor(Math.random() * sides) + 1));
+        setDisplayRolls([Math.floor(Math.random() * 20) + 1]);
         requestAnimationFrame(animateRoll);
         return;
       }
 
-      const baseAttributeRoll = Math.floor(Math.random() * rollRequest.attributeDie) + 1;
-      const baseTrainingRoll = Math.floor(Math.random() * rollRequest.trainingDie) + 1;
-      const finalRolls = [baseAttributeRoll, baseTrainingRoll];
-      let total = baseAttributeRoll + baseTrainingRoll;
-
-      triggerDisplayOutcome(baseAttributeRoll, baseTrainingRoll);
-
-      if (advantageEnabled) {
-        const advantageRoll = Math.floor(Math.random() * 6) + 1;
-        finalRolls.push(advantageRoll);
-        total += advantageRoll;
-      }
-
-      if (disadvantageEnabled) {
-        const disadvantageRoll = Math.floor(Math.random() * 6) + 1;
-        finalRolls.push(-disadvantageRoll);
-        total -= disadvantageRoll;
-      }
+      const d20Roll = Math.floor(Math.random() * 20) + 1;
+      const finalRolls = [d20Roll];
+      let total = d20Roll + rollRequest.totalBonus;
 
       setDisplayRolls(finalRolls);
 
-      const formulaParts = [`1d${rollRequest.attributeDie}`, `1d${rollRequest.trainingDie}`];
-      if (advantageEnabled) formulaParts.push('1d6');
-      if (disadvantageEnabled) formulaParts.push('-1d6');
-      const formula = formulaParts.join(' + ').replace('+ -', '- ');
+      const formula = `1d20 ${rollRequest.totalBonus >= 0 ? '+' : '-'} ${Math.abs(rollRequest.totalBonus)}`;
 
       const result: DiceResult = {
         formula,
@@ -226,7 +188,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
     };
 
     animateRoll();
-  }, [rollRequest, advantageEnabled, disadvantageEnabled, isRolling]);
+  }, [rollRequest, isRolling]);
 
   useEffect(() => {
     if (!damageRollRequest) return;
@@ -257,17 +219,19 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
             ? 'border-yellow-400 bg-yellow-950/25'
             : displayFlash === 'fail'
               ? 'border-red-300 bg-red-950/25'
-              : 'border-red-500 bg-black'
+              : 'border-red-500 bg-background'
         }`}
       >
         <h3 className="text-xs font-bold text-red-500 uppercase mb-3">Display de Testes</h3>
 
-        <div className="text-xs text-red-300 border border-red-500 p-2 bg-black/80 mb-3 min-h-14">
+        <div className="text-xs text-red-300 border border-red-500 p-2 bg-background/80 mb-3 min-h-14">
           {displayMode === 'skill' && rollRequest ? (
             <>
               <div className="font-bold text-red-400 uppercase">{rollRequest.periciaName}</div>
-              <div>{rollRequest.trainingLabel} com {rollRequest.attributeLabel}</div>
-              <div className="text-red-400">1d{rollRequest.attributeDie} + 1d{rollRequest.trainingDie}</div>
+              <div>{rollRequest.attributeLabel}</div>
+              <div className="text-red-400">
+                1d20 {rollRequest.totalBonus >= 0 ? '+' : '-'} {Math.abs(rollRequest.totalBonus)}
+              </div>
             </>
           ) : displayMode === 'custom' && customFormula ? (
             <>
@@ -281,22 +245,39 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
 
         {displayMode === 'skill' ? (
           <>
-            <div className="grid grid-cols-2 gap-2 mb-1">
-              <div className={`h-14 border-2 border-blue-500 bg-black flex items-center justify-center text-xl font-bold ${isRolling ? 'animate-pulse text-blue-300' : 'text-blue-500'}`}>
-                {displayRolls[0] ?? '-'}
-              </div>
-              <div className={`h-14 border-2 border-purple-600 bg-black flex items-center justify-center text-xl font-bold ${isRolling ? 'animate-pulse text-purple-300' : 'text-purple-500'}`}>
-                {displayRolls[1] ?? '-'}
-              </div>
+            <div className={`h-14 border-2 border-blue-500 bg-background flex items-center justify-center text-xl font-bold ${isRolling ? 'animate-pulse text-blue-300' : 'text-blue-500'}`}>
+              {displayRolls[0] === undefined
+                ? '-'
+                : showSkillTotal
+                  ? displayRolls[0] + displayModifier
+                  : displayRolls[0]}
             </div>
-            <div className="grid grid-cols-2 gap-2 mb-3 text-[10px] uppercase tracking-wide font-bold">
-              <div className="text-center text-blue-400">Esperanca</div>
-              <div className="text-center text-purple-400">Medo</div>
+            <div className="text-[10px] uppercase tracking-wide font-bold text-center text-blue-400 mb-2">
+              {showSkillTotal
+                ? `Resultado somado (${displayRolls[0] ?? '-'} + ${displayModifier})`
+                : 'd20 (valor puro)'}
+            </div>
+
+            <div className="flex items-center justify-end">
+              <button
+                onClick={() => setShowSkillTotal((prev) => !prev)}
+                className="inline-flex items-center gap-1 border border-red-500 px-2 py-1 text-[10px] font-bold uppercase text-red-400 hover:bg-red-500 hover:text-background transition-colors"
+                title="Alternar entre resultado puro e somado"
+              >
+                <span
+                  className={`flex h-3.5 w-3.5 items-center justify-center border ${
+                    showSkillTotal ? 'border-red-500 bg-red-500 text-background' : 'border-red-500 text-transparent'
+                  }`}
+                >
+                  <Check size={10} />
+                </span>
+                Somado
+              </button>
             </div>
           </>
         ) : (
           <>
-            <div className={`h-16 mb-1 border-2 border-red-500 bg-black flex flex-col items-center justify-center ${isRolling ? 'animate-pulse' : ''}`}>
+            <div className={`h-16 mb-1 border-2 border-red-500 bg-background flex flex-col items-center justify-center ${isRolling ? 'animate-pulse' : ''}`}>
               {displayRolls.length > 0 ? (
                 <>
                   <div className={`text-3xl font-bold ${isRolling ? 'text-red-300' : 'text-red-400'}`}>
@@ -328,48 +309,9 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
             {displayMessage}
           </div>
         )}
-
-        {(advantageEnabled || disadvantageEnabled) && (
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="h-10 border border-primary text-primary flex items-center justify-center text-sm font-bold">
-              {advantageEnabled ? `+${displayRolls[2] ?? '-'}` : '-'}
-            </div>
-            <div className="h-10 border border-red-500 text-red-400 flex items-center justify-center text-sm font-bold">
-              {disadvantageEnabled ? `-${Math.abs(displayRolls[advantageEnabled ? 3 : 2] ?? 0)}` : '-'}
-            </div>
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setAdvantageEnabled((prev) => !prev);
-            }}
-            className={`flex-1 px-2 py-1 text-xs font-bold uppercase border-2 transition-all ${
-              advantageEnabled
-                ? 'bg-primary border-primary text-black'
-                : 'border-primary text-primary hover:bg-primary hover:text-black'
-            }`}
-          >
-            Vantagem
-          </button>
-
-          <button
-            onClick={() => {
-              setDisadvantageEnabled((prev) => !prev);
-            }}
-            className={`flex-1 px-2 py-1 text-xs font-bold uppercase border-2 transition-all ${
-              disadvantageEnabled
-                ? 'bg-red-600 border-red-500 text-white'
-                : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-black'
-            }`}
-          >
-            Desvantagem
-          </button>
-        </div>
       </div>
 
-      <div className="border-2 border-red-500 p-4 bg-black">
+      <div className="border-2 border-red-500 p-4 bg-background">
         <h3 className="text-xs font-bold text-red-500 uppercase mb-4">Rolagem Customizada</h3>
 
         <div className="mb-4">
@@ -382,7 +324,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
                 className={`py-2 text-xs font-bold border-2 transition-all ${
                   numDice === num
                     ? 'bg-red-600 border-red-500 text-white'
-                    : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-black'
+                    : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-foreground'
                 }`}
               >
                 {num}
@@ -401,7 +343,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
                 className={`py-2 text-xs font-bold border-2 transition-all ${
                   diceType === type
                     ? 'bg-red-600 border-red-500 text-white'
-                    : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-black'
+                    : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-foreground'
                 }`}
               >
                 d{type}
@@ -421,11 +363,11 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
       </div>
 
       {history.length > 0 && (
-        <div className="border-2 border-red-500 p-4 bg-black">
+        <div className="border-2 border-red-500 p-4 bg-background">
           <h3 className="text-xs font-bold text-red-500 uppercase mb-3">Histórico</h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {history.map((roll, idx) => (
-              <div key={idx} className="p-3 border-2 border-red-500 bg-black text-xs font-mono transition-all">
+              <div key={idx} className="p-3 border-2 border-red-500 bg-background text-xs font-mono transition-all">
                 <div className="flex justify-between items-start mb-1">
                   <div className="font-bold text-red-500">{roll.formula}</div>
                   <div className="text-red-400">{roll.timestamp}</div>

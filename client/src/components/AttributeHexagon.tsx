@@ -6,22 +6,15 @@ interface AttributeHexagonProps {
   onChange: (value: number) => void;
 }
 
-const attributeDieMap: Record<number, string> = {
-  [-1]: '1d4',
-  0: '1d6',
-  1: '1d8',
-  2: '1d10',
-  3: '1d12',
-  4: '1d12',
-};
-
 const attributeLabels: Record<string, string> = {
-  agilidade: 'AGI',
   força: 'FOR',
-  finesse: 'FIN',
-  instinto: 'INS',
+  agilidade: 'AGI',
+  luta: 'LUT',
+  vigor: 'VIG',
+  destreza: 'DES',
+  intelecto: 'INT',
+  prontidão: 'PRO',
   presença: 'PRE',
-  conhecimento: 'CON',
 };
 
 export default function AttributeHexagon({ attribute, value, onChange }: AttributeHexagonProps) {
@@ -30,9 +23,8 @@ export default function AttributeHexagon({ attribute, value, onChange }: Attribu
 
   const handleSave = () => {
     const parsedValue = parseInt(tempValue) || 0;
-    const numValue = Math.max(-1, Math.min(4, parsedValue));
-    onChange(numValue);
-    setTempValue(numValue.toString());
+    onChange(parsedValue);
+    setTempValue(parsedValue.toString());
     setIsEditing(false);
   };
 
@@ -47,7 +39,7 @@ export default function AttributeHexagon({ attribute, value, onChange }: Attribu
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className="w-full aspect-square max-w-20 md:max-w-24 mx-auto bg-black border-2 border-primary hover:shadow-[0_0_10px_rgba(255,23,68,0.35)] transition-all duration-200 cursor-pointer flex items-center justify-center"
+        className="w-full aspect-square max-w-20 md:max-w-24 mx-auto bg-background border-2 border-primary hover:shadow-[0_0_10px_rgba(255,23,68,0.35)] transition-all duration-200 cursor-pointer flex items-center justify-center"
         onClick={() => setIsEditing(true)}
       >
         {isEditing ? (
@@ -59,14 +51,12 @@ export default function AttributeHexagon({ attribute, value, onChange }: Attribu
             onKeyDown={handleKeyDown}
             autoFocus
             style={{ fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}
-            className="w-12 h-12 bg-black text-primary text-center text-lg border-none outline-none"
-            min={-1}
-            max={4}
+            className="w-12 h-12 bg-background text-primary text-center text-lg border-none outline-none"
+            min="0"
           />
         ) : (
           <div className="text-center">
             <div style={{ fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }} className="text-2xl text-primary">{value}</div>
-            <div className="text-[10px] text-muted-foreground font-mono">{attributeDieMap[Math.max(-1, Math.min(4, value))]}</div>
           </div>
         )}
       </div>

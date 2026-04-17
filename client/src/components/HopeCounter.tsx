@@ -22,7 +22,7 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
 
   return (
     <div className="card-occult space-y-2">
-      <h3 className="font-display text-sm text-primary uppercase">Esperança</h3>
+      <h3 className="font-display text-sm text-primary uppercase">Pontos Heroicos</h3>
 
       <div className="flex items-center justify-between gap-2">
         <button

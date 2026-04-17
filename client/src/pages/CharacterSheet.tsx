@@ -2,11 +2,10 @@ import { useState } from 'react';
 import AttributeHexagon from '@/components/AttributeHexagon';
 import SkillsList from '@/components/SkillsList';
 import DiceRoller from '@/components/DiceRoller';
-import VitalStats from '@/components/VitalStats';
+import WoundsFrailty from '@/components/WoundsFrailty';
+import DefensePanel from '@/components/DefensePanel';
 import Pericias from '@/components/Pericias';
-import DamageThresholds from '@/components/DamageThresholds';
 import HopeCounter from '@/components/HopeCounter';
-import ArmorSelector from '@/components/ArmorSelector';
 import InventoryPanel from '@/components/InventoryPanel';
 import InsanityPanel from '@/components/InsanityPanel';
 import SaveLoad from '@/components/SaveLoad';
@@ -26,15 +25,29 @@ interface Skill {
   id: string;
   name: string;
   description: string;
-  damage: string;
-  hasCounter: boolean;
-  counter: number;
+  powerType: string;
+  modifiers: SkillModifier[];
+  graduation: number;
+  cost: number;
+  saveTest: string;
 }
+
+interface SkillModifier {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  isFixed: boolean;
+}
+
+type DefenseKey = 'esquiva' | 'aparar' | 'fortitude' | 'resistencia' | 'vontade';
 
 interface Pericia {
   id: string;
   name: string;
-  training: 'treinado' | 'veterano' | 'expert';
+  attribute: 'força' | 'agilidade' | 'luta' | 'vigor' | 'destreza' | 'intelecto' | 'prontidão' | 'presença';
+  graduation: number;
+  others: number;
 }
 
 interface DamageThreshold {
@@ -53,6 +66,7 @@ interface Weapon {
   id: string;
   name: string;
   traits: string;
+  damage?: string;
   damageDie: number;
   hasDamageBonus: boolean;
   damageBonus: number;
@@ -83,15 +97,19 @@ interface ParanormalPower {
 interface CharacterData {
   name: string;
   attributes: {
-    agilidade: number;
     força: number;
-    finesse: number;
-    instinto: number;
+    agilidade: number;
+    luta: number;
+    vigor: number;
+    destreza: number;
+    intelecto: number;
+    prontidão: number;
     presença: number;
-    conhecimento: number;
   };
   skills: Skill[];
   pericias: Pericia[];
+  wounds: number;
+  defenses: Record<DefenseKey, number>;
   hp: { current: number; max: number };
   sanity: { current: number; max: number };
   damageThresholds: DamageThreshold;
@@ -109,39 +127,18 @@ interface SkillRollRequest {
   id: number;
   periciaName: string;
   attributeLabel: string;
-  trainingLabel: string;
-  attributeDie: number;
-  trainingDie: number;
+  totalBonus: number;
 }
 
-const ATTRIBUTE_DIE_MAP: Record<number, number> = {
-  [-1]: 4,
-  0: 6,
-  1: 8,
-  2: 10,
-  3: 12,
-  4: 12,
-};
-
 const ATTRIBUTE_LABELS: Record<keyof CharacterData['attributes'], string> = {
+  força: 'Força',
   agilidade: 'Agilidade',
-  força: 'Forca',
-  finesse: 'Finesse',
-  instinto: 'Instinto',
-  presença: 'Presenca',
-  conhecimento: 'Conhecimento',
-};
-
-const TRAINING_DIE_MAP: Record<Pericia['training'], number> = {
-  treinado: 6,
-  veterano: 8,
-  expert: 10,
-};
-
-const TRAINING_LABELS: Record<Pericia['training'], string> = {
-  treinado: 'Treinado',
-  veterano: 'Veterano',
-  expert: 'Expert',
+  luta: 'Luta',
+  vigor: 'Vigor',
+  destreza: 'Destreza',
+  intelecto: 'Intelecto',
+  prontidão: 'Prontidão',
+  presença: 'Presença',
 };
 
 export default function CharacterSheet() {
@@ -151,18 +148,28 @@ export default function CharacterSheet() {
   const [character, setCharacter] = useState<CharacterData>({
     name: 'Seu Personagem',
     attributes: {
-      agilidade: 0,
       força: 0,
-      finesse: 0,
-      instinto: 0,
+      agilidade: 0,
+      luta: 0,
+      vigor: 0,
+      destreza: 0,
+      intelecto: 0,
+      prontidão: 0,
       presença: 0,
-      conhecimento: 0,
     },
     skills: [],
     pericias: [
-      { id: '1', name: 'Luta', training: 'treinado' },
-      { id: '2', name: 'Pontaria', training: 'veterano' },
+      { id: '1', name: 'Luta', attribute: 'luta', graduation: 2, others: 0 },
+      { id: '2', name: 'Pontaria', attribute: 'destreza', graduation: 1, others: 0 },
     ],
+    wounds: 0,
+    defenses: {
+      esquiva: 0,
+      aparar: 0,
+      fortitude: 0,
+      resistencia: 0,
+      vontade: 0,
+    },
     hp: { current: 20, max: 20 },
     sanity: { current: 10, max: 10 },
     damageThresholds: { minor: 7, major: 14, severe: 21 },
@@ -210,14 +217,20 @@ export default function CharacterSheet() {
       id: Date.now().toString(),
       name: 'Nova Habilidade',
       description: 'Descricao da habilidade',
-      damage: '1d6',
-      hasCounter: false,
-      counter: 0,
+      powerType: '',
+      modifiers: [],
+      graduation: 0,
+      cost: 0,
+      saveTest: '',
     };
     setCharacter((prev) => ({ ...prev, skills: [...prev.skills, newSkill] }));
   };
 
-  const handleUpdateSkill = (id: string, field: keyof Skill, value: string | number | boolean) => {
+  const handleUpdateSkill = (
+    id: string,
+    field: keyof Skill,
+    value: string | number | boolean | SkillModifier[]
+  ) => {
     setCharacter((prev) => ({
       ...prev,
       skills: prev.skills.map((skill) =>
@@ -257,12 +270,14 @@ export default function CharacterSheet() {
     const newPericia: Pericia = {
       id: Date.now().toString(),
       name: 'Nova Pericia',
-      training: 'treinado',
+      attribute: 'força',
+      graduation: 0,
+      others: 0,
     };
     setCharacter({ ...character, pericias: [...character.pericias, newPericia] });
   };
 
-  const handleUpdatePericia = (id: string, field: keyof Pericia, value: string) => {
+  const handleUpdatePericia = (id: string, field: keyof Pericia, value: string | number) => {
     setCharacter({
       ...character,
       pericias: character.pericias.map((pericia) =>
@@ -278,47 +293,56 @@ export default function CharacterSheet() {
     });
   };
 
-  const handleRollPericia = (id: string, selectedAttribute: keyof CharacterData['attributes']) => {
+  const handleRollPericia = (id: string) => {
     const pericia = character.pericias.find((p) => p.id === id);
     if (!pericia) return;
 
-    const attributeValue = character.attributes[selectedAttribute];
-    const normalizedAttribute = Math.max(-1, Math.min(4, attributeValue));
+    const attributeValue = character.attributes[pericia.attribute];
+    const totalBonus = attributeValue + pericia.graduation + pericia.others;
 
     setPendingRoll({
       id: Date.now(),
       periciaName: pericia.name || 'Pericia sem nome',
-      attributeLabel: ATTRIBUTE_LABELS[selectedAttribute],
-      trainingLabel: TRAINING_LABELS[pericia.training],
-      attributeDie: ATTRIBUTE_DIE_MAP[normalizedAttribute],
-      trainingDie: TRAINING_DIE_MAP[pericia.training],
-    });
-  };
-
-  const handleVitalChange = (type: 'hp' | 'sanity', field: 'current' | 'max', value: number): void => {
-    setCharacter({
-      ...character,
-      [type]: { ...character[type], [field]: value },
-    });
-  };
-
-  const handleDamageThresholdChange = (field: keyof DamageThreshold, value: number) => {
-    setCharacter({
-      ...character,
-      damageThresholds: { ...character.damageThresholds, [field]: value },
+      attributeLabel: ATTRIBUTE_LABELS[pericia.attribute],
+      totalBonus: totalBonus,
     });
   };
 
   const handleHopeChange = (value: number) => {
-    setCharacter({ ...character, hope: value });
+    setCharacter({ ...character, hope: Math.max(0, Math.min(6, value)) });
   };
 
-  const handleArmorChange = (value: number) => {
-    setCharacter({ ...character, armor: value });
+  const handleWoundsChange = (value: number) => {
+    const wounds = Math.max(0, value);
+    setCharacter({ ...character, wounds });
   };
 
-  const handleEvasionChange = (value: number) => {
-    setCharacter({ ...character, evasion: value });
+  const handleDefenseTrainingChange = (defense: DefenseKey, value: number) => {
+    setCharacter({
+      ...character,
+      defenses: {
+        ...character.defenses,
+        [defense]: Math.max(0, value),
+      },
+    });
+  };
+
+  const handleRollDefense = (
+    defenseKey: DefenseKey,
+    defenseName: string,
+    attributeLabel: string,
+    totalBonus: number
+  ) => {
+    const adjustedTotal = defenseKey === 'resistencia'
+      ? totalBonus - Math.max(0, character.wounds)
+      : totalBonus;
+
+    setPendingRoll({
+      id: Date.now(),
+      periciaName: defenseName,
+      attributeLabel,
+      totalBonus: adjustedTotal,
+    });
   };
 
   const handleAddInventoryItem = () => {
@@ -421,7 +445,15 @@ export default function CharacterSheet() {
     data: Partial<CharacterData> & {
       expertises?: Array<{ id: string; name: string }>;
       skills?: Array<
-        Partial<Skill> & { id: string; name?: string; effect?: string; cost?: number }
+        Partial<Skill> & {
+          id: string;
+          name?: string;
+          effect?: string;
+          damage?: string;
+          hasCounter?: boolean;
+          counter?: number;
+          modifiers?: SkillModifier[] | string;
+        }
       >;
     }
   ) => {
@@ -450,9 +482,19 @@ export default function CharacterSheet() {
           id: skill.id,
           name: skill.name ?? 'Habilidade',
           description: skill.description ?? skill.effect ?? '',
-          damage: skill.damage ?? '1d6',
-          hasCounter: skill.hasCounter ?? false,
-          counter: skill.counter ?? skill.cost ?? 0,
+          powerType: skill.powerType ?? '',
+          modifiers: Array.isArray(skill.modifiers)
+            ? skill.modifiers.map((modifier) => ({
+                id: modifier.id,
+                name: modifier.name,
+                description: modifier.description,
+                cost: Number(modifier.cost ?? 0),
+                isFixed: Boolean(modifier.isFixed),
+              }))
+            : [],
+          graduation: Number(skill.graduation ?? 0),
+          cost: Number(skill.cost ?? skill.counter ?? 0),
+          saveTest: skill.saveTest ?? '',
         }))
       : [];
 
@@ -460,12 +502,16 @@ export default function CharacterSheet() {
       ? data.pericias.map((pericia) => ({
           id: pericia.id,
           name: pericia.name,
-          training: pericia.training ?? 'treinado',
+          attribute: pericia.attribute ?? 'força',
+          graduation: pericia.graduation ?? 0,
+          others: pericia.others ?? 0,
         }))
       : (data.expertises || []).map((expertise) => ({
           id: expertise.id,
           name: expertise.name,
-          training: 'treinado' as const,
+          attribute: 'força' as const,
+          graduation: 0,
+          others: 0,
         }));
 
     setCharacter((prev) => ({
@@ -477,21 +523,28 @@ export default function CharacterSheet() {
       },
       skills: loadedSkills.length > 0 ? loadedSkills : prev.skills,
       pericias: loadedPericias.length > 0 ? loadedPericias : prev.pericias,
+      defenses: {
+        esquiva: Number(data.defenses?.esquiva ?? prev.defenses.esquiva),
+        aparar: Number(data.defenses?.aparar ?? prev.defenses.aparar),
+        fortitude: Number(data.defenses?.fortitude ?? prev.defenses.fortitude),
+        resistencia: Number(data.defenses?.resistencia ?? prev.defenses.resistencia),
+        vontade: Number(data.defenses?.vontade ?? prev.defenses.vontade),
+      },
       primaryWeapon: normalizeWeapon(data.primaryWeapon, prev.primaryWeapon),
       secondaryWeapon: normalizeWeapon(data.secondaryWeapon, prev.secondaryWeapon),
     }));
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-background text-foreground font-mono overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="border-b-2 border-primary bg-black p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none">
+      <div className="border-b-2 border-primary bg-background p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none">
         <h1 className="font-display text-2xl md:text-4xl text-primary">ORDEM DA VERDADE</h1>
         <input
           type="text"
           value={character.name}
           onChange={handleNameChange}
-          className="input-occult text-lg md:text-2xl font-display bg-black border-b-2 border-primary focus:border-primary w-full"
+          className="input-occult text-lg md:text-2xl font-display bg-background border-b-2 border-primary focus:border-primary w-full"
           placeholder="Nome do Personagem"
         />
 
@@ -501,37 +554,21 @@ export default function CharacterSheet() {
           onLoadCharacter={handleLoadCharacter}
         />
 
-        {/* Vitals + Hope + Armor Row - Stack on mobile */}
+        {/* Wounds + Hope Row - Stack on mobile */}
         <div className="flex flex-col md:flex-row gap-2 md:gap-4">
           <div className="flex-1 min-w-0">
-            <VitalStats
-              hp={character.hp}
-              sanity={character.sanity}
-              onHpChange={(field, value) => handleVitalChange('hp', field, value)}
-              onSanityChange={(field, value) => handleVitalChange('sanity', field, value)}
-            />
+            <WoundsFrailty wounds={character.wounds} onWoundsChange={handleWoundsChange} />
           </div>
-          <div className="w-full md:w-56 flex-shrink-0 space-y-2">
-            <div>
-              <HopeCounter
-                current={character.hope}
-                onChange={handleHopeChange}
-              />
-            </div>
-            <div>
-              <DamageThresholds
-                thresholds={character.damageThresholds}
-                onChange={handleDamageThresholdChange}
-              />
-            </div>
+          <div className="flex-1 min-w-0">
+            <DefensePanel
+              attributes={character.attributes}
+              defenses={character.defenses}
+              onTrainingChange={handleDefenseTrainingChange}
+              onRollDefense={handleRollDefense}
+            />
           </div>
           <div className="w-full md:w-56 flex-shrink-0">
-            <ArmorSelector
-              armorValue={character.armor}
-              onArmorChange={handleArmorChange}
-              evasion={character.evasion}
-              onEvasionChange={handleEvasionChange}
-            />
+            <HopeCounter current={character.hope} onChange={handleHopeChange} />
           </div>
         </div>
       </div>

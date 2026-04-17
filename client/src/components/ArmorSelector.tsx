@@ -38,7 +38,7 @@ export default function ArmorSelector({
         {/* Armor */}
         <div className="space-y-1">
           <label className="font-display text-sm text-primary uppercase block">Armadura</label>
-          <div className="bg-black border border-primary p-2 space-y-2">
+          <div className="bg-background border border-primary p-2 space-y-2">
             {/* Armor Value Display */}
             <div className="flex items-center justify-between">
               <span className="font-display text-sm text-primary uppercase">Valor</span>
