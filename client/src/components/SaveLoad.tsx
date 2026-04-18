@@ -12,6 +12,9 @@ export default function SaveLoad({ characterData, onLoadCharacter }: SaveLoadPro
   const handleSave = () => {
     const dataToSave = {
       name: characterData.name,
+      story: characterData.story,
+      trauma: characterData.trauma,
+      powerFlaw: characterData.powerFlaw,
       attributes: characterData.attributes,
       skills: characterData.skills,
       pericias: characterData.pericias,

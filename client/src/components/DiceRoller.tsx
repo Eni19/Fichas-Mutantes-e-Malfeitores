@@ -15,6 +15,7 @@ interface SkillRollRequest {
   baseBonus: number;
   modifierBreakdown: number[];
   totalBonus: number;
+  criticalThreshold?: number;
 }
 
 interface DiceRollerProps {
@@ -40,6 +41,16 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
   const diceTypes = [4, 6, 8, 10, 12, 20];
   const maxDice = 10;
   const displayModifierTotal = displayBaseBonus + displayModifiers.reduce((sum, modifier) => sum + modifier, 0);
+
+  const updateCriticalFeedback = (rolls: number[], isD20Roll: boolean, criticalThreshold = 20) => {
+    if (!isD20Roll) return;
+
+    const hasCritical = rolls.some((roll) => roll >= criticalThreshold);
+    if (hasCritical) {
+      setDisplayFlash('critical');
+      setDisplayMessage('CRITICO!');
+    }
+  };
 
   const rollCustomDice = () => {
     if (isRolling) return;
@@ -82,6 +93,7 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
 
       setHistory((prev) => [result, ...prev.slice(0, 4)]);
       setDisplayRolls(rolls);
+      updateCriticalFeedback(rolls, diceType === 20, 20);
       setIsRolling(false);
     };
 
@@ -134,6 +146,7 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
       };
 
       setHistory((prev) => [result, ...prev.slice(0, 4)]);
+      updateCriticalFeedback(finalRolls, true, rollRequest.criticalThreshold ?? 20);
       setIsRolling(false);
     };
 

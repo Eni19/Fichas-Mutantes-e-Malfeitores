@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BookOpenText, X } from 'lucide-react';
 import AttributeHexagon from '@/components/AttributeHexagon';
 import SkillsList from '@/components/SkillsList';
 import DiceRoller from '@/components/DiceRoller';
@@ -6,6 +7,7 @@ import WoundsFrailty from '@/components/WoundsFrailty';
 import DefensePanel from '@/components/DefensePanel';
 import Pericias from '@/components/Pericias';
 import HopeCounter from '@/components/HopeCounter';
+import type { HeroicActionId } from '@/components/HopeCounter';
 import InventoryPanel from '@/components/InventoryPanel';
 import AdvantagesPanel from '@/components/AdvantagesPanel';
 import InsanityPanel from '@/components/InsanityPanel';
@@ -85,6 +87,9 @@ interface Attack {
 
 interface CharacterData {
   name: string;
+  story: string;
+  trauma: string;
+  powerFlaw: string;
   attributes: {
     força: number;
     agilidade: number;
@@ -119,6 +124,7 @@ interface SkillRollRequest {
   baseBonus: number;
   modifierBreakdown: number[];
   totalBonus: number;
+  criticalThreshold?: number;
 }
 
 const ATTRIBUTE_LABELS: Record<keyof CharacterData['attributes'], string> = {
@@ -135,8 +141,12 @@ const ATTRIBUTE_LABELS: Record<keyof CharacterData['attributes'], string> = {
 export default function CharacterSheet() {
   const [pendingRoll, setPendingRoll] = useState<SkillRollRequest | null>(null);
   const [openSidebar, setOpenSidebar] = useState<'attacks' | 'insanity' | 'advantages' | null>(null);
+  const [isPersonalDetailsOpen, setIsPersonalDetailsOpen] = useState(false);
   const [character, setCharacter] = useState<CharacterData>({
     name: 'Seu Personagem',
+    story: '',
+    trauma: '',
+    powerFlaw: '',
     attributes: {
       força: 0,
       agilidade: 0,
@@ -192,6 +202,27 @@ export default function CharacterSheet() {
     return CONDITIONS
       .filter((condition) => character.activeConditions.includes(condition.id))
       .map((condition) => `${condition.name}: ${condition.effect}${condition.details ? ` (${condition.details})` : ''}`);
+  };
+
+  const getPointDistribution = () => {
+    const attributePoints = Object.values(character.attributes).reduce((total, value) => total + value, 0) * 2;
+    const periciaPoints = character.pericias.reduce((total, pericia) => total + pericia.graduation * 0.5, 0);
+    const skillPoints = character.skills.reduce((total, skill) => total + Number(skill.cost ?? 0), 0);
+    const defensePoints = Object.values(character.defenses).reduce((total, value) => total + value, 0);
+    const advantagePoints = character.advantages.reduce((total, advantage) => total + Number(advantage.graduation ?? 0), 0);
+
+    return {
+      attributePoints,
+      periciaPoints,
+      skillPoints,
+      defensePoints,
+      advantagePoints,
+      total: attributePoints + periciaPoints + skillPoints + defensePoints + advantagePoints,
+    };
+  };
+
+  const formatPoints = (value: number) => {
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
   };
 
   const expandConditionIds = (ids: ConditionId[]) => {
@@ -330,11 +361,27 @@ export default function CharacterSheet() {
       baseBonus,
       modifierBreakdown,
       totalBonus: totalBonus,
+      criticalThreshold: 20,
     });
   };
 
   const handleHopeChange = (value: number) => {
     setCharacter({ ...character, hope: Math.max(0, Math.min(6, value)) });
+  };
+
+  const handleHeroicActionSelected = (actionId: HeroicActionId) => {
+    if (actionId !== 'recover') return;
+
+    const removableConditions: ConditionId[] = ['tonto', 'fatigado', 'atordoado'];
+    const shouldRemove = (conditionId: ConditionId) => {
+      const expanded = expandConditionIds([conditionId]);
+      return expanded.some((id) => removableConditions.includes(id));
+    };
+
+    setCharacter((prev) => ({
+      ...prev,
+      activeConditions: prev.activeConditions.filter((conditionId) => !shouldRemove(conditionId)),
+    }));
   };
 
   const handleEnhancedInitiativeChange = (value: number) => {
@@ -353,6 +400,7 @@ export default function CharacterSheet() {
       baseBonus,
       modifierBreakdown,
       totalBonus: initiativeBonus,
+      criticalThreshold: 20,
     });
   };
 
@@ -394,6 +442,7 @@ export default function CharacterSheet() {
       baseBonus: adjustedWithWounds,
       modifierBreakdown,
       totalBonus: adjustedTotal,
+      criticalThreshold: 20,
     });
   };
 
@@ -433,6 +482,7 @@ export default function CharacterSheet() {
     const baseBonus = attack.test;
     const modifierBreakdown = getGlobalTestModifierBreakdown();
     const totalBonus = baseBonus + modifierBreakdown.reduce((total, modifier) => total + modifier, 0);
+    const criticalThreshold = Math.min(20, Math.max(1, attack.critical || 20));
 
     setPendingRoll({
       id: Date.now(),
@@ -441,6 +491,7 @@ export default function CharacterSheet() {
       baseBonus,
       modifierBreakdown,
       totalBonus,
+      criticalThreshold,
     });
   };
 
@@ -676,13 +727,24 @@ export default function CharacterSheet() {
       {/* Header */}
       <div className="border-b-2 border-primary bg-background p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none">
         <h1 className="font-display text-2xl md:text-4xl text-primary">ACADEMIA DE LYON</h1>
-        <input
-          type="text"
-          value={character.name}
-          onChange={handleNameChange}
-          className="input-occult text-lg md:text-2xl font-display bg-background border-b-2 border-primary focus:border-primary w-full"
-          placeholder="Nome do Personagem"
-        />
+        <div className="flex items-end gap-2">
+          <input
+            type="text"
+            value={character.name}
+            onChange={handleNameChange}
+            className="input-occult text-lg md:text-2xl font-display bg-background border-b-2 border-primary focus:border-primary w-full"
+            placeholder="Nome do Personagem"
+          />
+          <button
+            type="button"
+            onClick={() => setIsPersonalDetailsOpen(true)}
+            className="h-10 w-10 mr-14 md:mr-16 border-2 border-primary text-primary hover:bg-primary hover:text-background transition-colors flex items-center justify-center flex-shrink-0"
+            title="Abrir detalhes pessoais"
+            aria-label="Abrir detalhes pessoais"
+          >
+            <BookOpenText size={16} />
+          </button>
+        </div>
 
         {/* Save/Load Buttons */}
         <SaveLoad
@@ -707,8 +769,12 @@ export default function CharacterSheet() {
               onRollDefense={handleRollDefense}
             />
           </div>
-          <div className="w-full md:w-56 flex-shrink-0">
-            <HopeCounter current={character.hope} onChange={handleHopeChange} />
+          <div className="w-full md:w-56 flex-shrink-0 self-stretch">
+            <HopeCounter
+              current={character.hope}
+              onChange={handleHopeChange}
+              onHeroicActionSelected={handleHeroicActionSelected}
+            />
           </div>
         </div>
       </div>
@@ -807,6 +873,95 @@ export default function CharacterSheet() {
         onUpdateInventoryItem={handleUpdateInventoryItem}
         onDeleteInventoryItem={handleDeleteInventoryItem}
       />
+
+      {isPersonalDetailsOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl border-2 border-primary bg-background p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-primary pb-2">
+              <h3 className="font-display text-base text-primary uppercase">Detalhes Pessoais</h3>
+              <button
+                type="button"
+                onClick={() => setIsPersonalDetailsOpen(false)}
+                className="h-8 w-8 border border-primary text-primary hover:bg-primary hover:text-background transition-colors flex items-center justify-center"
+                aria-label="Fechar detalhes pessoais"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-[10px] uppercase tracking-wide text-primary font-bold">Historia</div>
+              <textarea
+                value={character.story}
+                onChange={(e) => setCharacter({ ...character, story: e.target.value })}
+                className="w-full bg-transparent border border-primary text-muted-foreground text-xs p-2 focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                rows={4}
+                placeholder="Escreva sua historia"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-[10px] uppercase tracking-wide text-primary font-bold">Trauma</div>
+              <textarea
+                value={character.trauma}
+                onChange={(e) => setCharacter({ ...character, trauma: e.target.value })}
+                className="w-full bg-transparent border border-primary text-muted-foreground text-xs p-2 focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                rows={3}
+                placeholder="Escreva seu trauma"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-[10px] uppercase tracking-wide text-primary font-bold">Falha dos Poderes</div>
+              <textarea
+                value={character.powerFlaw}
+                onChange={(e) => setCharacter({ ...character, powerFlaw: e.target.value })}
+                className="w-full bg-transparent border border-primary text-muted-foreground text-xs p-2 focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                rows={3}
+                placeholder="Escreva a falha dos poderes"
+              />
+            </div>
+
+            <div className="border border-primary p-3 space-y-2 bg-black/40">
+              <div className="text-[10px] uppercase tracking-wide text-primary font-bold">Distribuicao dos pontos</div>
+
+              {(() => {
+                const distribution = getPointDistribution();
+
+                return (
+                  <div className="space-y-1 text-xs font-mono">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-primary uppercase">Atributos</span>
+                      <span className="text-muted-foreground">{formatPoints(distribution.attributePoints)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-primary uppercase">Pericias</span>
+                      <span className="text-muted-foreground">{formatPoints(distribution.periciaPoints)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-primary uppercase">Habilidades</span>
+                      <span className="text-muted-foreground">{formatPoints(distribution.skillPoints)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-primary uppercase">Defesa</span>
+                      <span className="text-muted-foreground">{formatPoints(distribution.defensePoints)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-primary uppercase">Vantagens</span>
+                      <span className="text-muted-foreground">{formatPoints(distribution.advantagePoints)}</span>
+                    </div>
+
+                    <div className="pt-2 mt-2 border-t border-primary flex items-center justify-between gap-3">
+                      <span className="text-primary uppercase font-bold">Total</span>
+                      <span className="text-primary font-bold">{formatPoints(distribution.total)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
