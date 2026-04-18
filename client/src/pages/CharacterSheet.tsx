@@ -8,6 +8,8 @@ import Pericias from '@/components/Pericias';
 import HopeCounter from '@/components/HopeCounter';
 import InventoryPanel from '@/components/InventoryPanel';
 import InsanityPanel from '@/components/InsanityPanel';
+import type { ConditionId } from '@/components/InsanityPanel';
+import { CONDITIONS } from '@/components/InsanityPanel';
 import SaveLoad from '@/components/SaveLoad';
 
 /**
@@ -26,6 +28,7 @@ interface Skill {
   name: string;
   description: string;
   powerType: string;
+  isCritical: boolean;
   modifiers: SkillModifier[];
   graduation: number;
   cost: number;
@@ -62,36 +65,13 @@ interface InventoryItem {
   description: string;
 }
 
-interface Weapon {
+interface Attack {
   id: string;
   name: string;
-  traits: string;
-  damage?: string;
-  damageDie: number;
-  hasDamageBonus: boolean;
-  damageBonus: number;
-  proficiency: number;
-  feature: string;
-}
-
-interface DamageRollRequest {
-  id: number;
-  weaponName: string;
-  diceCount: number;
-  diceType: number;
-  modifier: number;
-}
-
-interface Insanity {
-  id: string;
-  name: string;
-  description: string;
-}
-
-interface ParanormalPower {
-  id: string;
-  name: string;
-  description: string;
+  test: number;
+  effect: string;
+  resistanceTest: string;
+  critical: number;
 }
 
 interface CharacterData {
@@ -114,13 +94,11 @@ interface CharacterData {
   sanity: { current: number; max: number };
   damageThresholds: DamageThreshold;
   hope: number;
+  enhancedInitiative: number;
   armor: number;
   evasion: number;
-  inventory: InventoryItem[];
-  primaryWeapon: Weapon;
-  secondaryWeapon: Weapon;
-  insanities: Insanity[];
-  paranormalPowers: ParanormalPower[];
+  attacks: Attack[];
+  activeConditions: ConditionId[];
 }
 
 interface SkillRollRequest {
@@ -143,8 +121,7 @@ const ATTRIBUTE_LABELS: Record<keyof CharacterData['attributes'], string> = {
 
 export default function CharacterSheet() {
   const [pendingRoll, setPendingRoll] = useState<SkillRollRequest | null>(null);
-  const [pendingDamageRoll, setPendingDamageRoll] = useState<DamageRollRequest | null>(null);
-  const [openSidebar, setOpenSidebar] = useState<'inventory' | 'insanity' | null>(null);
+  const [openSidebar, setOpenSidebar] = useState<'attacks' | 'insanity' | null>(null);
   const [character, setCharacter] = useState<CharacterData>({
     name: 'Seu Personagem',
     attributes: {
@@ -174,32 +151,38 @@ export default function CharacterSheet() {
     sanity: { current: 10, max: 10 },
     damageThresholds: { minor: 7, major: 14, severe: 21 },
     hope: 3,
+    enhancedInitiative: 0,
     armor: 0,
     evasion: 0,
-    inventory: [],
-    primaryWeapon: {
-      id: '1',
-      name: '',
-      traits: '',
-      damageDie: 6,
-      hasDamageBonus: false,
-      damageBonus: 0,
-      proficiency: 0,
-      feature: '',
-    },
-    secondaryWeapon: {
-      id: '2',
-      name: '',
-      traits: '',
-      damageDie: 6,
-      hasDamageBonus: false,
-      damageBonus: 0,
-      proficiency: 0,
-      feature: '',
-    },
-    insanities: [],
-    paranormalPowers: [],
+    attacks: [],
+    activeConditions: [],
   });
+
+  const hasCondition = (conditionId: ConditionId) => character.activeConditions.includes(conditionId);
+
+  const getGlobalTestModifier = () => {
+    let modifier = 0;
+
+    if (hasCondition('prejudicado')) modifier -= 2;
+    if (hasCondition('desabilitado')) modifier -= 5;
+
+    return modifier;
+  };
+
+  const getConditionEffectsForWounds = () => {
+    return CONDITIONS
+      .filter((condition) => character.activeConditions.includes(condition.id))
+      .map((condition) => `${condition.name}: ${condition.effect}`);
+  };
+
+  const applyActiveDefenseCondition = (defenseKey: DefenseKey, total: number) => {
+    if (defenseKey !== 'aparar' && defenseKey !== 'esquiva') return total;
+
+    if (hasCondition('indefeso')) return 0;
+    if (hasCondition('vulneravel')) return Math.floor(total / 2);
+
+    return total;
+  };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCharacter({ ...character, name: e.target.value });
@@ -218,6 +201,7 @@ export default function CharacterSheet() {
       name: 'Nova Habilidade',
       description: 'Descricao da habilidade',
       powerType: '',
+      isCritical: false,
       modifiers: [],
       graduation: 0,
       cost: 0,
@@ -298,7 +282,7 @@ export default function CharacterSheet() {
     if (!pericia) return;
 
     const attributeValue = character.attributes[pericia.attribute];
-    const totalBonus = attributeValue + pericia.graduation + pericia.others;
+    const totalBonus = attributeValue + pericia.graduation + pericia.others + getGlobalTestModifier();
 
     setPendingRoll({
       id: Date.now(),
@@ -310,6 +294,21 @@ export default function CharacterSheet() {
 
   const handleHopeChange = (value: number) => {
     setCharacter({ ...character, hope: Math.max(0, Math.min(6, value)) });
+  };
+
+  const handleEnhancedInitiativeChange = (value: number) => {
+    setCharacter((prev) => ({ ...prev, enhancedInitiative: Math.max(0, value) }));
+  };
+
+  const handleRollInitiative = () => {
+    const initiativeBonus = character.attributes.agilidade + character.enhancedInitiative * 4 + getGlobalTestModifier();
+
+    setPendingRoll({
+      id: Date.now(),
+      periciaName: 'Iniciativa',
+      attributeLabel: 'Iniciativa',
+      totalBonus: initiativeBonus,
+    });
   };
 
   const handleWoundsChange = (value: number) => {
@@ -333,9 +332,11 @@ export default function CharacterSheet() {
     attributeLabel: string,
     totalBonus: number
   ) => {
-    const adjustedTotal = defenseKey === 'resistencia'
-      ? totalBonus - Math.max(0, character.wounds)
-      : totalBonus;
+    const adjustedDefense = applyActiveDefenseCondition(defenseKey, totalBonus);
+    const adjustedWithWounds = defenseKey === 'resistencia'
+      ? adjustedDefense - Math.max(0, character.wounds)
+      : adjustedDefense;
+    const adjustedTotal = adjustedWithWounds + getGlobalTestModifier();
 
     setPendingRoll({
       id: Date.now(),
@@ -345,105 +346,80 @@ export default function CharacterSheet() {
     });
   };
 
-  const handleAddInventoryItem = () => {
-    const newItem: InventoryItem = {
+  const handleAddAttack = () => {
+    const newAttack: Attack = {
       id: Date.now().toString(),
-      name: 'Novo Item',
-      description: '',
+      name: 'Novo Ataque',
+      test: 0,
+      effect: '',
+      resistanceTest: '',
+      critical: 0,
     };
-    setCharacter({ ...character, inventory: [...character.inventory, newItem] });
+    setCharacter((prev) => ({ ...prev, attacks: [...prev.attacks, newAttack] }));
   };
 
-  const handleUpdateInventoryItem = (id: string, field: keyof InventoryItem, value: string) => {
-    setCharacter({
-      ...character,
-      inventory: character.inventory.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
+  const handleUpdateAttack = (id: string, field: keyof Attack, value: string | number) => {
+    setCharacter((prev) => ({
+      ...prev,
+      attacks: prev.attacks.map((attack) =>
+        attack.id === id ? { ...attack, [field]: value } : attack
       ),
-    });
+    }));
   };
 
-  const handleDeleteInventoryItem = (id: string) => {
-    setCharacter({
-      ...character,
-      inventory: character.inventory.filter((item) => item.id !== id),
-    });
+  const handleDeleteAttack = (id: string) => {
+    setCharacter((prev) => ({
+      ...prev,
+      attacks: prev.attacks.filter((attack) => attack.id !== id),
+    }));
   };
 
-  const handleUpdatePrimaryWeapon = (field: keyof Weapon, value: string | number | boolean) => {
-    setCharacter({
-      ...character,
-      primaryWeapon: { ...character.primaryWeapon, [field]: value },
-    });
-  };
+  const handleRollAttack = (id: string) => {
+    const attack = character.attacks.find((item) => item.id === id);
+    if (!attack) return;
 
-  const handleUpdateSecondaryWeapon = (field: keyof Weapon, value: string | number | boolean) => {
-    setCharacter({
-      ...character,
-      secondaryWeapon: { ...character.secondaryWeapon, [field]: value },
-    });
-  };
+    const resistanceLabel = attack.resistanceTest.trim() || '-';
 
-  const handleRollWeaponDamage = (weapon: Weapon) => {
-    const diceCount = Math.max(1, weapon.proficiency || 0);
-    const modifier = weapon.hasDamageBonus ? weapon.damageBonus : 0;
-
-    setPendingDamageRoll({
+    setPendingRoll({
       id: Date.now(),
-      weaponName: weapon.name || 'Arma sem nome',
-      diceCount,
-      diceType: weapon.damageDie,
-      modifier,
+      periciaName: attack.name || 'Ataque sem nome',
+      attributeLabel: `Resistencia: ${resistanceLabel} | Critico: ${attack.critical}`,
+      totalBonus: attack.test + getGlobalTestModifier(),
     });
   };
 
-  const toggleInventoryPanel = () => {
-    setOpenSidebar((prev) => (prev === 'inventory' ? null : 'inventory'));
+  const toggleAttacksPanel = () => {
+    setOpenSidebar((prev) => (prev === 'attacks' ? null : 'attacks'));
   };
 
   const toggleInsanityPanel = () => {
     setOpenSidebar((prev) => (prev === 'insanity' ? null : 'insanity'));
   };
 
-  const handleAddInsanity = (insanity: Insanity) => {
-    setCharacter({ ...character, insanities: [...character.insanities, insanity] });
-  };
-
-  const handleUpdateInsanity = (id: string, insanity: Insanity) => {
+  const handleToggleCondition = (conditionId: ConditionId) => {
     setCharacter({
       ...character,
-      insanities: character.insanities.map((i) => (i.id === id ? insanity : i)),
-    });
-  };
-
-  const handleRemoveInsanity = (id: string) => {
-    setCharacter({
-      ...character,
-      insanities: character.insanities.filter((i) => i.id !== id),
-    });
-  };
-
-  const handleAddPower = (power: ParanormalPower) => {
-    setCharacter({ ...character, paranormalPowers: [...character.paranormalPowers, power] });
-  };
-
-  const handleUpdatePower = (id: string, power: ParanormalPower) => {
-    setCharacter({
-      ...character,
-      paranormalPowers: character.paranormalPowers.map((p) => (p.id === id ? power : p)),
-    });
-  };
-
-  const handleRemovePower = (id: string) => {
-    setCharacter({
-      ...character,
-      paranormalPowers: character.paranormalPowers.filter((p) => p.id !== id),
+      activeConditions: character.activeConditions.includes(conditionId)
+        ? character.activeConditions.filter((id) => id !== conditionId)
+        : [...character.activeConditions, conditionId],
     });
   };
 
   const handleLoadCharacter = (
     data: Partial<CharacterData> & {
       expertises?: Array<{ id: string; name: string }>;
+      initiative?: number;
+      iniciativaAprimorada?: number;
+      initiativeAprimorada?: number;
+      attacks?: Array<
+        Partial<Attack> & {
+          id: string;
+          teste?: number;
+          efeito?: string;
+          testeResistencia?: string;
+          critico?: number;
+        }
+      >;
       skills?: Array<
         Partial<Skill> & {
           id: string;
@@ -455,34 +431,42 @@ export default function CharacterSheet() {
           modifiers?: SkillModifier[] | string;
         }
       >;
+      activeConditions?: ConditionId[];
+      conditions?: ConditionId[];
     }
   ) => {
-    const normalizeWeapon = (weapon: Partial<Weapon> | undefined, fallback: Weapon): Weapon => {
-      const parsedLegacyDie =
-        typeof weapon?.damage === 'string'
-          ? Number((weapon.damage.match(/d(\d+)/i) || [])[1] || 0)
-          : 0;
-
-      const candidateDie = Number(weapon?.damageDie ?? parsedLegacyDie ?? fallback.damageDie);
-      const supportedDice = [4, 6, 8, 10, 12, 20];
-      const safeDie = supportedDice.includes(candidateDie) ? candidateDie : 6;
-
-      return {
-        ...fallback,
-        ...weapon,
-        damageDie: safeDie,
-        hasDamageBonus: Boolean(weapon?.hasDamageBonus),
-        damageBonus: Number(weapon?.damageBonus ?? 0),
-        proficiency: Number(weapon?.proficiency ?? fallback.proficiency),
-      };
+    type LegacySkill = Partial<Skill> & {
+      id: string;
+      effect?: string;
+      damage?: string;
+      hasCounter?: boolean;
+      counter?: number;
+      modifiers?: SkillModifier[] | string;
     };
 
-    const loadedSkills: Skill[] = Array.isArray(data.skills)
-      ? data.skills.map((skill) => ({
+    type LegacyAttack = Partial<Attack> & {
+      id: string;
+      teste?: number;
+      efeito?: string;
+      testeResistencia?: string;
+      critico?: number;
+    };
+
+    const rawSkills: LegacySkill[] = Array.isArray(data.skills)
+      ? (data.skills as LegacySkill[])
+      : [];
+
+    const rawAttacks: LegacyAttack[] = Array.isArray(data.attacks)
+      ? (data.attacks as LegacyAttack[])
+      : [];
+
+    const loadedSkills: Skill[] = rawSkills.length > 0
+      ? rawSkills.map((skill) => ({
           id: skill.id,
           name: skill.name ?? 'Habilidade',
           description: skill.description ?? skill.effect ?? '',
           powerType: skill.powerType ?? '',
+          isCritical: Boolean(skill.isCritical),
           modifiers: Array.isArray(skill.modifiers)
             ? skill.modifiers.map((modifier) => ({
                 id: modifier.id,
@@ -495,6 +479,17 @@ export default function CharacterSheet() {
           graduation: Number(skill.graduation ?? 0),
           cost: Number(skill.cost ?? skill.counter ?? 0),
           saveTest: skill.saveTest ?? '',
+        }))
+      : [];
+
+    const loadedAttacks: Attack[] = rawAttacks.length > 0
+      ? rawAttacks.map((attack) => ({
+          id: attack.id,
+          name: attack.name ?? 'Ataque',
+          test: Number(attack.test ?? attack.teste ?? 0),
+          effect: attack.effect ?? attack.efeito ?? '',
+          resistanceTest: attack.resistanceTest ?? attack.testeResistencia ?? '',
+          critical: Number(attack.critical ?? attack.critico ?? 0),
         }))
       : [];
 
@@ -521,7 +516,19 @@ export default function CharacterSheet() {
         ...prev.attributes,
         ...data.attributes,
       },
+      enhancedInitiative: Number(
+        data.enhancedInitiative ??
+        data.iniciativaAprimorada ??
+        data.initiativeAprimorada ??
+        Math.max(
+          0,
+          Math.floor(
+            (Number(data.initiative ?? prev.attributes.agilidade) - Number(data.attributes?.agilidade ?? prev.attributes.agilidade)) / 4
+          )
+        )
+      ),
       skills: loadedSkills.length > 0 ? loadedSkills : prev.skills,
+      attacks: loadedAttacks.length > 0 ? loadedAttacks : prev.attacks,
       pericias: loadedPericias.length > 0 ? loadedPericias : prev.pericias,
       defenses: {
         esquiva: Number(data.defenses?.esquiva ?? prev.defenses.esquiva),
@@ -530,8 +537,11 @@ export default function CharacterSheet() {
         resistencia: Number(data.defenses?.resistencia ?? prev.defenses.resistencia),
         vontade: Number(data.defenses?.vontade ?? prev.defenses.vontade),
       },
-      primaryWeapon: normalizeWeapon(data.primaryWeapon, prev.primaryWeapon),
-      secondaryWeapon: normalizeWeapon(data.secondaryWeapon, prev.secondaryWeapon),
+      activeConditions: Array.isArray(data.activeConditions)
+        ? data.activeConditions
+        : Array.isArray(data.conditions)
+          ? data.conditions
+          : prev.activeConditions,
     }));
   };
 
@@ -557,7 +567,11 @@ export default function CharacterSheet() {
         {/* Wounds + Hope Row - Stack on mobile */}
         <div className="flex flex-col md:flex-row gap-2 md:gap-4">
           <div className="flex-1 min-w-0">
-            <WoundsFrailty wounds={character.wounds} onWoundsChange={handleWoundsChange} />
+            <WoundsFrailty
+              wounds={character.wounds}
+              onWoundsChange={handleWoundsChange}
+              conditionEffects={getConditionEffectsForWounds()}
+            />
           </div>
           <div className="flex-1 min-w-0">
             <DefensePanel
@@ -625,40 +639,33 @@ export default function CharacterSheet() {
 
         {/* Right Column - Dice */}
         <div className="flex-shrink-0 w-full md:w-56 pr-0 md:pr-4">
-          <DiceRoller rollRequest={pendingRoll} damageRollRequest={pendingDamageRoll} />
+          <DiceRoller rollRequest={pendingRoll} />
         </div>
       </div>
 
-      {/* Inventory Panel - Retractable Sidebar */}
+      {/* Attacks Panel - Retractable Sidebar */}
       <InventoryPanel
-        isOpen={openSidebar === 'inventory'}
+        isOpen={openSidebar === 'attacks'}
         showToggle={openSidebar !== 'insanity'}
-        onToggle={toggleInventoryPanel}
-        inventory={character.inventory}
-        onAddItem={handleAddInventoryItem}
-        onUpdateItem={handleUpdateInventoryItem}
-        onDeleteItem={handleDeleteInventoryItem}
-        primaryWeapon={character.primaryWeapon}
-        onUpdatePrimaryWeapon={handleUpdatePrimaryWeapon}
-        secondaryWeapon={character.secondaryWeapon}
-        onUpdateSecondaryWeapon={handleUpdateSecondaryWeapon}
-        onRollPrimaryDamage={() => handleRollWeaponDamage(character.primaryWeapon)}
-        onRollSecondaryDamage={() => handleRollWeaponDamage(character.secondaryWeapon)}
+        onToggle={toggleAttacksPanel}
+        initiative={character.attributes.agilidade + character.enhancedInitiative * 4}
+        enhancedInitiative={character.enhancedInitiative}
+        onEnhancedInitiativeChange={handleEnhancedInitiativeChange}
+        onRollInitiative={handleRollInitiative}
+        attacks={character.attacks}
+        onAddAttack={handleAddAttack}
+        onUpdateAttack={handleUpdateAttack}
+        onDeleteAttack={handleDeleteAttack}
+        onRollAttack={handleRollAttack}
       />
 
       {/* Insanity Panel - Second Retractable Sidebar */}
       <InsanityPanel
         isOpen={openSidebar === 'insanity'}
-        showToggle={openSidebar !== 'inventory'}
+        showToggle={openSidebar !== 'attacks'}
         onToggle={toggleInsanityPanel}
-        insanities={character.insanities}
-        paranormalPowers={character.paranormalPowers}
-        onInsanityAdd={handleAddInsanity}
-        onInsanityRemove={handleRemoveInsanity}
-        onInsanityUpdate={handleUpdateInsanity}
-        onPowerAdd={handleAddPower}
-        onPowerRemove={handleRemovePower}
-        onPowerUpdate={handleUpdatePower}
+        activeConditions={character.activeConditions}
+        onToggleCondition={handleToggleCondition}
       />
     </div>
   );

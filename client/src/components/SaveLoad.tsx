@@ -19,13 +19,11 @@ export default function SaveLoad({ characterData, onLoadCharacter }: SaveLoadPro
       sanity: characterData.sanity,
       damageThresholds: characterData.damageThresholds,
       hope: characterData.hope,
+      enhancedInitiative: characterData.enhancedInitiative,
       armor: characterData.armor,
       evasion: characterData.evasion,
-      inventory: characterData.inventory,
-      primaryWeapon: characterData.primaryWeapon,
-      secondaryWeapon: characterData.secondaryWeapon,
-      insanities: characterData.insanities,
-      paranormalPowers: characterData.paranormalPowers,
+      attacks: characterData.attacks,
+      activeConditions: characterData.activeConditions,
     };
 
     const jsonString = JSON.stringify(dataToSave, null, 2);

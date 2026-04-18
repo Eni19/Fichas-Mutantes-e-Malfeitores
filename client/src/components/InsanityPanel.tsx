@@ -1,88 +1,61 @@
-import { useState } from 'react';
-import { ChevronLeft, Trash2, Plus } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
-interface Insanity {
-  id: string;
-  name: string;
-  description: string;
-}
+export type ConditionId =
+  | 'atordoado'
+  | 'compelido'
+  | 'controlado'
+  | 'debilitado'
+  | 'desabilitado'
+  | 'desatento'
+  | 'enfraquecido'
+  | 'fatigado'
+  | 'imovel'
+  | 'impedido'
+  | 'indefeso'
+  | 'prejudicado'
+  | 'tonto'
+  | 'vulneravel';
 
-interface ParanormalPower {
-  id: string;
+interface ConditionDefinition {
+  id: ConditionId;
   name: string;
-  description: string;
+  effect: string;
 }
 
 interface InsanityPanelProps {
   isOpen: boolean;
   showToggle: boolean;
   onToggle: () => void;
-  insanities: Insanity[];
-  paranormalPowers: ParanormalPower[];
-  onInsanityAdd: (insanity: Insanity) => void;
-  onInsanityRemove: (id: string) => void;
-  onInsanityUpdate: (id: string, insanity: Insanity) => void;
-  onPowerAdd: (power: ParanormalPower) => void;
-  onPowerRemove: (id: string) => void;
-  onPowerUpdate: (id: string, power: ParanormalPower) => void;
+  activeConditions: ConditionId[];
+  onToggleCondition: (conditionId: ConditionId) => void;
 }
+
+export const CONDITIONS: ConditionDefinition[] = [
+  { id: 'atordoado', name: 'Atordoado', effect: 'Nao pode realizar nenhuma acao.' },
+  { id: 'compelido', name: 'Compelido', effect: 'So pode fazer acoes livres + 1 acao padrao por turno, controladas por outro.' },
+  { id: 'controlado', name: 'Controlado', effect: 'Todas as acoes sao decididas por outro personagem.' },
+  { id: 'debilitado', name: 'Debilitado', effect: 'Uma ou mais habilidades ficam abaixo de -5.' },
+  { id: 'desabilitado', name: 'Desabilitado', effect: '-5 em todos os testes.' },
+  { id: 'desatento', name: 'Desatento', effect: 'Nao percebe o ambiente, nao faz testes de Percepcao nem acoes relacionadas; alvos tem cobertura total contra ele.' },
+  { id: 'enfraquecido', name: 'Enfraquecido', effect: 'Perde pontos de poder em uma caracteristica temporariamente.' },
+  { id: 'fatigado', name: 'Fatigado', effect: 'Fica impedido; recupera apos 1 hora de descanso.' },
+  { id: 'imovel', name: 'Imovel', effect: 'Nao pode se mover, mas ainda pode agir.' },
+  { id: 'impedido', name: 'Impedido', effect: 'Movimento reduzido a metade.' },
+  { id: 'indefeso', name: 'Indefeso', effect: 'Defesas ativas (Aparar e Esquiva) = 0.' },
+  { id: 'prejudicado', name: 'Prejudicado', effect: '-2 em todos os testes.' },
+  { id: 'tonto', name: 'Tonto', effect: 'So acoes livres + 1 acao padrao por turno.' },
+  { id: 'vulneravel', name: 'Vulneravel', effect: 'Defesas ativas (Aparar e Esquiva) reduzidas pela metade.' },
+];
 
 export default function InsanityPanel({
   isOpen,
   showToggle,
   onToggle,
-  insanities,
-  paranormalPowers,
-  onInsanityAdd,
-  onInsanityRemove,
-  onInsanityUpdate,
-  onPowerAdd,
-  onPowerRemove,
-  onPowerUpdate,
+  activeConditions,
+  onToggleCondition,
 }: InsanityPanelProps) {
-  const [showInsanityForm, setShowInsanityForm] = useState(false);
-  const [showPowerForm, setShowPowerForm] = useState(false);
-  const [newInsanityName, setNewInsanityName] = useState('');
-  const [newInsanityDesc, setNewInsanityDesc] = useState('');
-  const [newPowerName, setNewPowerName] = useState('');
-  const [newPowerDesc, setNewPowerDesc] = useState('');
-
-  const autoResizeTextarea = (target: HTMLTextAreaElement) => {
-    target.style.height = 'auto';
-    target.style.height = `${target.scrollHeight}px`;
-  };
-
-  const addInsanity = () => {
-    if (newInsanityName.trim()) {
-      const newInsanity: Insanity = {
-        id: Date.now().toString(),
-        name: newInsanityName,
-        description: newInsanityDesc,
-      };
-      onInsanityAdd(newInsanity);
-      setNewInsanityName('');
-      setNewInsanityDesc('');
-      setShowInsanityForm(false);
-    }
-  };
-
-  const addPower = () => {
-    if (newPowerName.trim()) {
-      const newPower: ParanormalPower = {
-        id: Date.now().toString(),
-        name: newPowerName,
-        description: newPowerDesc,
-      };
-      onPowerAdd(newPower);
-      setNewPowerName('');
-      setNewPowerDesc('');
-      setShowPowerForm(false);
-    }
-  };
-
   return (
     <div className="fixed right-0 top-0 h-screen z-30">
-      {/* Toggle Button */}
       {showToggle && (
         <button
           onClick={onToggle}
@@ -94,182 +67,47 @@ export default function InsanityPanel({
             <ChevronLeft size={20} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </span>
           <span className="pr-4 text-sm font-display uppercase tracking-wide whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-            Insanidades
+            Condicoes
           </span>
         </button>
       )}
 
-      {/* Panel */}
       <div
         className={`h-full bg-black overflow-y-auto transition-all duration-300 ${
           isOpen ? 'w-80 border-l-2 border-orange-500' : 'w-0 border-l-0'
         }`}
       >
-        <div className="p-4 space-y-6">
-          {/* Insanities Section */}
-          <div>
-            <div className="flex items-center justify-between mb-3 border-b-2 border-orange-500 pb-2">
-              <h3 className="font-display text-lg text-orange-300 uppercase">Insanidades</h3>
-              <button
-                onClick={() => setShowInsanityForm((prev) => !prev)}
-                className="bg-orange-500 text-black font-bold px-2 py-1 hover:bg-orange-400 transition-colors flex items-center gap-1 text-xs uppercase"
-              >
-                <Plus size={14} />
-                Adicionar
-              </button>
-            </div>
-
-            <div className="space-y-3 mb-4">
-              {insanities.map((insanity) => (
-                <div key={insanity.id} className="bg-black border-2 border-orange-500 p-2 space-y-1">
-                  <div className="flex justify-between items-start">
-                    <input
-                      type="text"
-                      value={insanity.name}
-                      onChange={(e) =>
-                        onInsanityUpdate(insanity.id, { ...insanity, name: e.target.value })
-                      }
-                      className="bg-black text-orange-200 text-sm font-bold border-b border-orange-500 outline-none flex-1"
-                      placeholder="Nome"
-                    />
-                    <button
-                      onClick={() => onInsanityRemove(insanity.id)}
-                      className="text-orange-400 hover:text-orange-300 ml-2"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  <textarea
-                    value={insanity.description}
-                    onChange={(e) =>
-                      onInsanityUpdate(insanity.id, { ...insanity, description: e.target.value })
-                    }
-                    onInput={(e) => autoResizeTextarea(e.currentTarget)}
-                    className="w-full bg-black text-orange-200 text-xs border border-orange-500 p-1 outline-none resize-none overflow-hidden"
-                    rows={2}
-                    placeholder="Descrição"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Add Insanity */}
-            {showInsanityForm && (
-              <div className="space-y-2 border border-orange-500 p-2 bg-orange-950/10">
-                <input
-                  type="text"
-                  value={newInsanityName}
-                  onChange={(e) => setNewInsanityName(e.target.value)}
-                  className="w-full bg-black text-orange-200 text-sm border border-orange-500 p-2 outline-none"
-                  placeholder="Nova Insanidade"
-                />
-                <textarea
-                  value={newInsanityDesc}
-                  onChange={(e) => setNewInsanityDesc(e.target.value)}
-                  onInput={(e) => autoResizeTextarea(e.currentTarget)}
-                  className="w-full bg-black text-orange-200 text-sm border border-orange-500 p-2 outline-none resize-none overflow-hidden"
-                  rows={2}
-                  placeholder="Descrição"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={addInsanity}
-                    className="flex-1 bg-orange-500 text-black font-bold py-1 hover:bg-orange-400 transition-colors flex items-center justify-center gap-1 text-xs uppercase"
-                  >
-                    <Plus size={14} />
-                    Salvar
-                  </button>
-                  <button
-                    onClick={() => setShowInsanityForm(false)}
-                    className="flex-1 border border-orange-500 text-orange-300 font-bold py-1 hover:bg-orange-500 hover:text-black transition-colors text-xs uppercase"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between border-b-2 border-orange-500 pb-2">
+            <h3 className="font-display text-lg text-orange-300 uppercase">Condicoes</h3>
+            <span className="text-[10px] uppercase tracking-wide text-orange-400">
+              {activeConditions.length} ativas
+            </span>
           </div>
 
-          {/* Paranormal Powers Section */}
-          <div>
-            <div className="flex items-center justify-between mb-3 border-b-2 border-orange-500 pb-2">
-              <h3 className="font-display text-lg text-orange-300 uppercase">Poderes Paranormais</h3>
-              <button
-                onClick={() => setShowPowerForm((prev) => !prev)}
-                className="bg-orange-500 text-black font-bold px-2 py-1 hover:bg-orange-400 transition-colors flex items-center gap-1 text-xs uppercase"
-              >
-                <Plus size={14} />
-                Adicionar
-              </button>
-            </div>
+          <div className="space-y-2">
+            {CONDITIONS.map((condition) => {
+              const isActive = activeConditions.includes(condition.id);
 
-            <div className="space-y-3 mb-4">
-              {paranormalPowers.map((power) => (
-                <div key={power.id} className="bg-black border-2 border-orange-500 p-2 space-y-1">
-                  <div className="flex justify-between items-start">
-                    <input
-                      type="text"
-                      value={power.name}
-                      onChange={(e) => onPowerUpdate(power.id, { ...power, name: e.target.value })}
-                      className="bg-black text-orange-200 text-sm font-bold border-b border-orange-500 outline-none flex-1"
-                      placeholder="Nome"
-                    />
-                    <button
-                      onClick={() => onPowerRemove(power.id)}
-                      className="text-orange-400 hover:text-orange-300 ml-2"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  <textarea
-                    value={power.description}
-                    onChange={(e) =>
-                      onPowerUpdate(power.id, { ...power, description: e.target.value })
-                    }
-                    onInput={(e) => autoResizeTextarea(e.currentTarget)}
-                    className="w-full bg-black text-orange-200 text-xs border border-orange-500 p-1 outline-none resize-none overflow-hidden"
-                    rows={2}
-                    placeholder="Descrição"
+              return (
+                <label
+                  key={condition.id}
+                  className={`flex items-center gap-3 border p-2 cursor-pointer transition-colors ${
+                    isActive
+                      ? 'border-orange-300 bg-orange-900/20 text-orange-100'
+                      : 'border-orange-500/60 bg-black text-orange-300 hover:bg-orange-950/20'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={() => onToggleCondition(condition.id)}
+                    className="h-4 w-4 accent-orange-500"
                   />
-                </div>
-              ))}
-            </div>
-
-            {/* Add Power */}
-            {showPowerForm && (
-              <div className="space-y-2 border border-orange-500 p-2 bg-orange-950/10">
-                <input
-                  type="text"
-                  value={newPowerName}
-                  onChange={(e) => setNewPowerName(e.target.value)}
-                  className="w-full bg-black text-orange-200 text-sm border border-orange-500 p-2 outline-none"
-                  placeholder="Novo Poder Paranormal"
-                />
-                <textarea
-                  value={newPowerDesc}
-                  onChange={(e) => setNewPowerDesc(e.target.value)}
-                  onInput={(e) => autoResizeTextarea(e.currentTarget)}
-                  className="w-full bg-black text-orange-200 text-sm border border-orange-500 p-2 outline-none resize-none overflow-hidden"
-                  rows={2}
-                  placeholder="Descrição"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={addPower}
-                    className="flex-1 bg-orange-500 text-black font-bold py-1 hover:bg-orange-400 transition-colors flex items-center justify-center gap-1 text-xs uppercase"
-                  >
-                    <Plus size={14} />
-                    Salvar
-                  </button>
-                  <button
-                    onClick={() => setShowPowerForm(false)}
-                    className="flex-1 border border-orange-500 text-orange-300 font-bold py-1 hover:bg-orange-500 hover:text-black transition-colors text-xs uppercase"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
+                  <span className="text-sm font-bold uppercase tracking-wide">{condition.name}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
       </div>

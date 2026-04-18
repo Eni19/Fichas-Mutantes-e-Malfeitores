@@ -14,6 +14,7 @@ interface Skill {
   name: string;
   description: string;
   powerType: string;
+  isCritical: boolean;
   modifiers: SkillModifier[];
   graduation: number;
   cost: number;
@@ -183,19 +184,22 @@ export default function SkillsList({ skills, onUpdateSkill, onDeleteSkill, onReo
               </div>
 
               <div className="flex items-end gap-2">
-                <input
-                  type="text"
-                  value={skill.powerType}
-                  onChange={(e) => onUpdateSkill(skill.id, 'powerType', e.target.value)}
-                  style={{ fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}
-                  className="w-32 bg-input border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary text-xs p-1"
-                  placeholder="Tipo de poder"
-                />
+                <div className="w-32">
+                  <div className="text-[10px] font-bold uppercase text-primary mb-1">Tipo de poder</div>
+                  <input
+                    type="text"
+                    value={skill.powerType}
+                    onChange={(e) => onUpdateSkill(skill.id, 'powerType', e.target.value)}
+                    style={{ fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}
+                    className="w-full bg-input border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary text-xs p-1"
+                    placeholder="Tipo de poder"
+                  />
+                </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="text-[10px] font-bold uppercase text-primary mb-1">Teste de salvamento</div>
                   <input
-                    type="text"
+                    type="number"
                     value={skill.saveTest}
                     onChange={(e) => onUpdateSkill(skill.id, 'saveTest', e.target.value)}
                     className="w-full bg-input border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary text-xs p-1"
@@ -203,6 +207,24 @@ export default function SkillsList({ skills, onUpdateSkill, onDeleteSkill, onReo
                   />
                 </div>
               </div>
+
+              <label className="flex items-center gap-2 text-[10px] font-bold uppercase text-primary">
+                <input
+                  type="checkbox"
+                  checked={skill.isCritical}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    const currentSaveTest = Number(skill.saveTest);
+                    const safeSaveTest = Number.isFinite(currentSaveTest) ? currentSaveTest : 0;
+                    const nextSaveTest = safeSaveTest + (isChecked ? 5 : -5);
+
+                    onUpdateSkill(skill.id, 'isCritical', isChecked);
+                    onUpdateSkill(skill.id, 'saveTest', String(nextSaveTest));
+                  }}
+                  className="accent-red-500"
+                />
+                Critico
+              </label>
 
               <div className="grid grid-cols-1 gap-2">
                 <div>

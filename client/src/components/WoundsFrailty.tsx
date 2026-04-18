@@ -3,9 +3,14 @@ import { Minus, Plus } from 'lucide-react';
 interface WoundsFrailtyProps {
   wounds: number;
   onWoundsChange: (value: number) => void;
+  conditionEffects: string[];
 }
 
-export default function WoundsFrailty({ wounds, onWoundsChange }: WoundsFrailtyProps) {
+export default function WoundsFrailty({
+  wounds,
+  onWoundsChange,
+  conditionEffects,
+}: WoundsFrailtyProps) {
   const frailty = -Math.max(0, wounds);
 
   return (
@@ -53,6 +58,21 @@ export default function WoundsFrailty({ wounds, onWoundsChange }: WoundsFrailtyP
             className="bg-primary h-full transition-all duration-300"
             style={{ width: `${Math.min(100, wounds * 20)}%` }}
           />
+        </div>
+
+        <div className="border border-primary p-2 bg-black/70 min-h-14">
+          <div className="text-[10px] uppercase tracking-wide text-primary font-bold mb-1">Condicoes ativas</div>
+          {conditionEffects.length > 0 ? (
+            <div className="space-y-1">
+              {conditionEffects.map((effect) => (
+                <div key={effect} className="text-[11px] text-red-200 leading-tight">
+                  {effect}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[11px] text-muted-foreground">Nenhuma condicao ativa.</div>
+          )}
         </div>
       </div>
     </div>

@@ -15,20 +15,11 @@ interface SkillRollRequest {
   totalBonus: number;
 }
 
-interface DamageRollRequest {
-  id: number;
-  weaponName: string;
-  diceCount: number;
-  diceType: number;
-  modifier: number;
-}
-
 interface DiceRollerProps {
   rollRequest: SkillRollRequest | null;
-  damageRollRequest: DamageRollRequest | null;
 }
 
-export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRollerProps) {
+export default function DiceRoller({ rollRequest }: DiceRollerProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [history, setHistory] = useState<DiceResult[]>([]);
   const [displayRolls, setDisplayRolls] = useState<number[]>([]);
@@ -45,7 +36,6 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
 
   const diceTypes = [4, 6, 8, 10, 12, 20];
   const maxDice = 10;
-  const lastProcessedDamageRollIdRef = useRef<number | null>(null);
 
   const rollCustomDice = () => {
     if (isRolling) return;
@@ -78,52 +68,6 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
         formula: `${numDice}d${diceType}`,
         total,
         rolls,
-        timestamp: new Date().toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }),
-      };
-
-      setHistory((prev) => [result, ...prev.slice(0, 4)]);
-      setDisplayRolls(rolls);
-      setIsRolling(false);
-    };
-
-    animateRoll();
-  };
-
-  const rollUnifiedDisplay = (formula: string, count: number, type: number, modifier = 0, subtitle?: string) => {
-    setDisplayMode('custom');
-    setCustomFormula(formula);
-    setDisplaySubtitle(subtitle ?? null);
-    setDisplayModifier(modifier);
-    setDisplayMessage(null);
-    setDisplayFlash(null);
-    setIsRolling(true);
-    setDisplayRolls(Array.from({ length: count }, () => Math.floor(Math.random() * type) + 1));
-
-    const animationDuration = 650;
-    const startTime = Date.now();
-
-    const animateRoll = () => {
-      const elapsed = Date.now() - startTime;
-
-      if (elapsed < animationDuration) {
-        setDisplayRolls(Array.from({ length: count }, () => Math.floor(Math.random() * type) + 1));
-        requestAnimationFrame(animateRoll);
-        return;
-      }
-
-      const rolls = Array.from({ length: count }, () => Math.floor(Math.random() * type) + 1);
-      const total = rolls.reduce((sum, current) => sum + current, 0) + modifier;
-
-      const resultRolls = modifier !== 0 ? [...rolls, modifier] : rolls;
-
-      const result: DiceResult = {
-        formula,
-        total,
-        rolls: resultRolls,
         timestamp: new Date().toLocaleTimeString('pt-BR', {
           hour: '2-digit',
           minute: '2-digit',
@@ -189,27 +133,6 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
 
     animateRoll();
   }, [rollRequest, isRolling]);
-
-  useEffect(() => {
-    if (!damageRollRequest) return;
-    if (isRolling) return;
-    if (lastProcessedDamageRollIdRef.current === damageRollRequest.id) return;
-
-    lastProcessedDamageRollIdRef.current = damageRollRequest.id;
-
-    const bonus = Number(damageRollRequest.modifier || 0);
-    const formula = `${damageRollRequest.diceCount}d${damageRollRequest.diceType}${
-      bonus !== 0 ? ` + ${bonus}` : ''
-    }`;
-
-    rollUnifiedDisplay(
-      formula,
-      damageRollRequest.diceCount,
-      damageRollRequest.diceType,
-      bonus,
-      `${damageRollRequest.weaponName} - Dano`
-    );
-  }, [damageRollRequest, isRolling]);
 
   return (
     <div className="space-y-4">
