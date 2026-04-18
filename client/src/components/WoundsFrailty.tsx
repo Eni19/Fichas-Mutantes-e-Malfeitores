@@ -15,9 +15,9 @@ export default function WoundsFrailty({
   const woundFill = `${Math.min(100, wounds * 20)}%`;
 
   return (
-    <div className="grid grid-cols-1 gap-2">
-      <div className="card-occult space-y-3">
-        <h3 className="font-display text-sm text-primary uppercase">Ferimentos</h3>
+    <div className="grid h-full grid-cols-1 gap-2">
+      <div className="card-occult h-full space-y-3">
+        <h3 className="font-display text-base md:text-lg text-primary uppercase">Ferimentos</h3>
 
         <div className="grid gap-3 md:grid-cols-[auto_auto_minmax(0,1fr)] md:items-stretch">
           <div className="flex flex-col gap-2">
@@ -50,32 +50,32 @@ export default function WoundsFrailty({
             </div>
 
             <div className="w-full h-[52px] border-2 border-primary bg-input text-center flex flex-col items-center justify-center">
-              <div className="text-[9px] uppercase tracking-wide text-red-300 font-bold leading-none">Penalidade</div>
-              <div className="font-display text-lg text-red-200 leading-none mt-1">{frailty}</div>
+              <div className="text-[9px] uppercase tracking-wide text-[#dea01e] font-bold leading-none">Penalidade</div>
+              <div className="font-display text-lg text-[#dea01e] leading-none mt-1">{frailty}</div>
             </div>
           </div>
 
           <div className="flex items-stretch justify-center md:justify-start">
-            <div className="flex h-full min-h-[120px] w-8 items-end border-2 border-primary bg-black overflow-hidden">
+            <div className="flex h-full min-h-[120px] w-8 items-end border-2 border-primary bg-[#c89dcc] overflow-hidden">
               <div
-                className="w-full bg-primary transition-all duration-300"
+                className="w-full bg-[#cf3085] transition-all duration-300"
                 style={{ height: woundFill }}
               />
             </div>
           </div>
 
-          <div className="border border-primary p-2 bg-black/70 min-h-[120px] flex-1">
+          <div className="border border-primary p-2 bg-card min-h-[120px] flex-1">
             <div className="text-[10px] uppercase tracking-wide text-primary font-bold mb-1">Condicoes ativas</div>
             {conditionEffects.length > 0 ? (
               <div className="space-y-1">
                 {conditionEffects.map((effect) => (
-                  <div key={effect} className="text-[11px] text-red-200 leading-tight">
+                  <div key={effect} className="text-[11px] text-foreground font-bold leading-tight">
                     {effect}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-[11px] text-muted-foreground">Nenhuma condicao ativa.</div>
+              <div className="text-[11px] text-foreground/80 font-bold">Nenhuma condicao ativa.</div>
             )}
           </div>
         </div>

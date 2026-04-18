@@ -44,7 +44,7 @@ export default function DefensePanel({
 }: DefensePanelProps) {
   return (
     <div className="card-occult flex flex-col space-y-2">
-      <h3 className="font-display text-xs text-primary uppercase">Defesas</h3>
+      <h3 className="font-display text-base md:text-lg text-primary uppercase">Defesas</h3>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-1 overflow-hidden">
         {DEFENSES.map((defense) => {
@@ -100,7 +100,7 @@ export default function DefensePanel({
                   <Minus size={8} />
                 </button>
 
-                <div className="w-8 h-4 border border-primary text-primary bg-black text-center text-[9px] font-bold leading-4">
+                <div className="w-8 h-4 border border-primary text-primary bg-background text-center text-[9px] font-bold leading-4">
                   +{training}
                 </div>
 

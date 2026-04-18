@@ -194,8 +194,8 @@ export default function InsanityPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-28 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300 ${
-            isOpen ? 'right-[26rem]' : 'right-0'
+          className={`group fixed top-40 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-background border-2 border-[#00524e] hover:bg-[#00524e] hover:text-white flex items-center justify-start text-[#00524e] transition-all duration-300 ${
+            isOpen ? 'right-[28rem]' : 'right-0'
           }`}
         >
           <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
@@ -208,64 +208,64 @@ export default function InsanityPanel({
       )}
 
       <div
-        className={`h-full bg-black overflow-y-auto transition-all duration-300 ${
-          isOpen ? 'w-[26rem] max-w-[92vw] border-l-2 border-orange-500' : 'w-0 border-l-0'
+        className={`h-full bg-background overflow-y-auto transition-all duration-300 ${
+          isOpen ? 'w-[28rem] max-w-[94vw] border-l-2 border-[#00524e]' : 'w-0 border-l-0'
         }`}
       >
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-between border-b-2 border-orange-500 pb-2">
-            <h3 className="font-display text-lg text-orange-300 uppercase">Condicoes</h3>
-            <span className="text-[10px] uppercase tracking-wide text-orange-400">
-              {activeConditions.length} ativas
-            </span>
+        <div className="h-full flex flex-col">
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-b-2 border-[#00524e]/35 px-4 pt-4 pb-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-xl text-[#00524e] uppercase tracking-wide">Condicoes</h3>
+              <span className="rounded-full border border-[#00524e] bg-[#00524e]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#00524e]">
+                Ativas
+              </span>
+            </div>
+
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00524e]/70" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Buscar condicao"
+                className="w-full rounded-md bg-background border border-[#00524e]/70 pl-10 pr-3 py-2 text-sm text-[#00524e] placeholder:text-[#00524e]/55 focus:outline-none focus:ring-2 focus:ring-[#00524e]/35"
+              />
+            </div>
           </div>
 
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-orange-500" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Buscar condicao"
-              className="w-full bg-black border border-orange-500/70 pl-8 pr-2 py-1.5 text-xs text-orange-100 placeholder:text-orange-500/70 focus:outline-none focus:ring-1 focus:ring-orange-400"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <div className="text-[10px] uppercase tracking-wide text-orange-400 font-bold">
-                Compostas ({compoundConditions.length})
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div className="space-y-2.5">
+              <div className="rounded-md border border-[#00524e]/35 bg-[#00524e]/6 px-2.5 py-1.5">
+                <div className="text-[11px] uppercase tracking-wide text-[#00524e] font-bold">
+                  Compostas
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {compoundConditions.map((condition) => {
                   const isActive = activeConditions.includes(condition.id);
-                  const componentNames = (condition.components || [])
-                    .map((componentId) => CONDITION_BY_ID[componentId]?.name || componentId)
-                    .join(' + ');
 
                   return (
                     <label
                       key={condition.id}
                       title={`${condition.effect}${condition.details ? ` | ${condition.details}` : ''}`}
-                      className={`border p-2 cursor-pointer transition-colors min-h-[66px] ${
+                      onClick={() => onToggleCondition(condition.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onToggleCondition(condition.id);
+                        }
+                      }}
+                      className={`rounded-md border p-2.5 cursor-pointer transition-colors min-h-[86px] ${
                         isActive
-                          ? 'border-orange-300 bg-orange-900/25 text-orange-100'
-                          : 'border-orange-500/60 bg-black text-orange-300 hover:bg-orange-950/20'
+                          ? 'border-[#00524e] bg-[#00524e] text-background'
+                          : 'border-[#00524e]/55 bg-background text-[#00524e] hover:bg-[#00524e]/10'
                       }`}
                     >
-                      <div className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isActive}
-                          onChange={() => onToggleCondition(condition.id)}
-                          className="mt-0.5 h-4 w-4 accent-orange-500"
-                        />
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold uppercase tracking-wide truncate">{condition.name}</div>
-                          <div className="text-[9px] text-orange-300/85 leading-tight mt-0.5 line-clamp-2">
-                            {componentNames}
-                          </div>
-                        </div>
+                      <div className="w-full">
+                        <div className="text-sm font-bold uppercase tracking-wide truncate">{condition.name}</div>
                       </div>
                     </label>
                   );
@@ -273,11 +273,14 @@ export default function InsanityPanel({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="text-[10px] uppercase tracking-wide text-orange-400 font-bold">
-                Basicas ({basicConditions.length})
+            <div className="space-y-2.5">
+              <div className="rounded-md border border-[#00524e]/35 bg-[#00524e]/6 px-2.5 py-1.5">
+                <div className="text-[11px] uppercase tracking-wide text-[#00524e] font-bold">
+                  Basicas
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {basicConditions.map((condition) => {
                   const isActive = activeConditions.includes(condition.id);
 
@@ -285,25 +288,23 @@ export default function InsanityPanel({
                     <label
                       key={condition.id}
                       title={condition.effect}
-                      className={`border p-2 cursor-pointer transition-colors min-h-[66px] ${
+                      onClick={() => onToggleCondition(condition.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onToggleCondition(condition.id);
+                        }
+                      }}
+                      className={`rounded-md border p-2.5 cursor-pointer transition-colors min-h-[86px] ${
                         isActive
-                          ? 'border-orange-300 bg-orange-900/25 text-orange-100'
-                          : 'border-orange-500/60 bg-black text-orange-300 hover:bg-orange-950/20'
+                          ? 'border-[#00524e] bg-[#00524e] text-background'
+                          : 'border-[#00524e]/55 bg-background text-[#00524e] hover:bg-[#00524e]/10'
                       }`}
                     >
-                      <div className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isActive}
-                          onChange={() => onToggleCondition(condition.id)}
-                          className="mt-0.5 h-4 w-4 accent-orange-500"
-                        />
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold uppercase tracking-wide truncate">{condition.name}</div>
-                          <div className="text-[9px] text-orange-300/85 leading-tight mt-0.5 line-clamp-2">
-                            {condition.effect}
-                          </div>
-                        </div>
+                      <div className="w-full">
+                        <div className="text-sm font-bold uppercase tracking-wide truncate">{condition.name}</div>
                       </div>
                     </label>
                   );
@@ -312,7 +313,7 @@ export default function InsanityPanel({
             </div>
 
             {compoundConditions.length === 0 && basicConditions.length === 0 && (
-              <div className="text-xs text-orange-400/80 border border-orange-500/40 p-2 text-center">
+              <div className="rounded-md text-sm text-[#00524e]/80 border border-[#00524e]/40 bg-[#00524e]/6 p-3 text-center">
                 Nenhuma condicao encontrada para a busca.
               </div>
             )}

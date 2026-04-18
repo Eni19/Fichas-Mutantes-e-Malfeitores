@@ -426,20 +426,17 @@ export default function CharacterSheet() {
     totalBonus: number
   ) => {
     const adjustedDefense = applyActiveDefenseCondition(defenseKey, totalBonus);
-    const adjustedWithWounds = defenseKey === 'resistencia'
-      ? adjustedDefense - Math.max(0, character.wounds)
-      : adjustedDefense;
     const modifierBreakdown = [
       ...getGlobalTestModifierBreakdown(),
       ...(defenseKey === 'resistencia' && character.wounds > 0 ? [-Math.max(0, character.wounds)] : []),
     ];
-    const adjustedTotal = adjustedWithWounds + modifierBreakdown.reduce((total, modifier) => total + modifier, 0);
+    const adjustedTotal = adjustedDefense + modifierBreakdown.reduce((total, modifier) => total + modifier, 0);
 
     setPendingRoll({
       id: Date.now(),
       periciaName: defenseName,
       attributeLabel,
-      baseBonus: adjustedWithWounds,
+      baseBonus: adjustedDefense,
       modifierBreakdown,
       totalBonus: adjustedTotal,
       criticalThreshold: 20,
@@ -835,6 +832,20 @@ export default function CharacterSheet() {
         </div>
       </div>
 
+      <AdvantagesPanel
+        isOpen={openSidebar === 'advantages'}
+        showToggle={openSidebar !== 'attacks' && openSidebar !== 'insanity'}
+        onToggle={toggleAdvantagesPanel}
+        advantages={character.advantages}
+        onAddAdvantage={handleAddAdvantage}
+        onUpdateAdvantage={handleUpdateAdvantage}
+        onDeleteAdvantage={handleDeleteAdvantage}
+        inventoryItems={character.inventoryItems}
+        onAddInventoryItem={handleAddInventoryItem}
+        onUpdateInventoryItem={handleUpdateInventoryItem}
+        onDeleteInventoryItem={handleDeleteInventoryItem}
+      />
+
       {/* Attacks Panel - Retractable Sidebar */}
       <InventoryPanel
         isOpen={openSidebar === 'attacks'}
@@ -851,27 +862,13 @@ export default function CharacterSheet() {
         onRollAttack={handleRollAttack}
       />
 
-      {/* Insanity Panel - Second Retractable Sidebar */}
+      {/* Insanity Panel - Third Retractable Sidebar */}
       <InsanityPanel
         isOpen={openSidebar === 'insanity'}
         showToggle={openSidebar !== 'attacks' && openSidebar !== 'advantages'}
         onToggle={toggleInsanityPanel}
         activeConditions={character.activeConditions}
         onToggleCondition={handleToggleCondition}
-      />
-
-      <AdvantagesPanel
-        isOpen={openSidebar === 'advantages'}
-        showToggle={openSidebar !== 'attacks' && openSidebar !== 'insanity'}
-        onToggle={toggleAdvantagesPanel}
-        advantages={character.advantages}
-        onAddAdvantage={handleAddAdvantage}
-        onUpdateAdvantage={handleUpdateAdvantage}
-        onDeleteAdvantage={handleDeleteAdvantage}
-        inventoryItems={character.inventoryItems}
-        onAddInventoryItem={handleAddInventoryItem}
-        onUpdateInventoryItem={handleUpdateInventoryItem}
-        onDeleteInventoryItem={handleDeleteInventoryItem}
       />
 
       {isPersonalDetailsOpen && (
@@ -890,7 +887,7 @@ export default function CharacterSheet() {
             </div>
 
             <div className="space-y-2">
-              <div className="text-[10px] uppercase tracking-wide text-primary font-bold">Historia</div>
+              <div className="text-sm uppercase tracking-wide text-primary font-bold">Historia</div>
               <textarea
                 value={character.story}
                 onChange={(e) => setCharacter({ ...character, story: e.target.value })}
@@ -901,7 +898,7 @@ export default function CharacterSheet() {
             </div>
 
             <div className="space-y-2">
-              <div className="text-[10px] uppercase tracking-wide text-primary font-bold">Trauma</div>
+              <div className="text-sm uppercase tracking-wide text-primary font-bold">Trauma</div>
               <textarea
                 value={character.trauma}
                 onChange={(e) => setCharacter({ ...character, trauma: e.target.value })}
@@ -912,7 +909,7 @@ export default function CharacterSheet() {
             </div>
 
             <div className="space-y-2">
-              <div className="text-[10px] uppercase tracking-wide text-primary font-bold">Falha dos Poderes</div>
+              <div className="text-sm uppercase tracking-wide text-primary font-bold">Falha dos Poderes</div>
               <textarea
                 value={character.powerFlaw}
                 onChange={(e) => setCharacter({ ...character, powerFlaw: e.target.value })}
@@ -922,8 +919,8 @@ export default function CharacterSheet() {
               />
             </div>
 
-            <div className="border border-primary p-3 space-y-2 bg-black/40">
-              <div className="text-[10px] uppercase tracking-wide text-primary font-bold">Distribuicao dos pontos</div>
+            <div className="border border-primary p-3 space-y-2 bg-primary text-background">
+              <div className="text-sm uppercase tracking-wide font-bold">Distribuicao dos pontos</div>
 
               {(() => {
                 const distribution = getPointDistribution();
@@ -931,29 +928,29 @@ export default function CharacterSheet() {
                 return (
                   <div className="space-y-1 text-xs font-mono">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-primary uppercase">Atributos</span>
-                      <span className="text-muted-foreground">{formatPoints(distribution.attributePoints)}</span>
+                      <span className="text-background uppercase font-bold">Atributos</span>
+                      <span className="text-background font-bold">{formatPoints(distribution.attributePoints)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-primary uppercase">Pericias</span>
-                      <span className="text-muted-foreground">{formatPoints(distribution.periciaPoints)}</span>
+                      <span className="text-background uppercase font-bold">Pericias</span>
+                      <span className="text-background font-bold">{formatPoints(distribution.periciaPoints)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-primary uppercase">Habilidades</span>
-                      <span className="text-muted-foreground">{formatPoints(distribution.skillPoints)}</span>
+                      <span className="text-background uppercase font-bold">Habilidades</span>
+                      <span className="text-background font-bold">{formatPoints(distribution.skillPoints)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-primary uppercase">Defesa</span>
-                      <span className="text-muted-foreground">{formatPoints(distribution.defensePoints)}</span>
+                      <span className="text-background uppercase font-bold">Defesa</span>
+                      <span className="text-background font-bold">{formatPoints(distribution.defensePoints)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-primary uppercase">Vantagens</span>
-                      <span className="text-muted-foreground">{formatPoints(distribution.advantagePoints)}</span>
+                      <span className="text-background uppercase font-bold">Vantagens</span>
+                      <span className="text-background font-bold">{formatPoints(distribution.advantagePoints)}</span>
                     </div>
 
-                    <div className="pt-2 mt-2 border-t border-primary flex items-center justify-between gap-3">
-                      <span className="text-primary uppercase font-bold">Total</span>
-                      <span className="text-primary font-bold">{formatPoints(distribution.total)}</span>
+                    <div className="pt-2 mt-2 border-t border-background flex items-center justify-between gap-3">
+                      <span className="text-background uppercase font-bold">Total</span>
+                      <span className="text-background font-bold">{formatPoints(distribution.total)}</span>
                     </div>
                   </div>
                 );

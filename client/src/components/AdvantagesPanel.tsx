@@ -51,7 +51,7 @@ export default function AdvantagesPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-40 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-background border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
+          className={`group fixed top-16 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-background border-2 border-primary hover:bg-primary hover:text-white flex items-center justify-start text-primary transition-all duration-300 ${
             isOpen ? 'right-[21rem]' : 'right-0'
           }`}
         >

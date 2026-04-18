@@ -73,7 +73,7 @@ export default function SaveLoad({ characterData, onLoadCharacter }: SaveLoadPro
     <div className="flex gap-2">
       <button
         onClick={handleSave}
-        className="flex-1 py-2 px-3 bg-primary text-black font-bold uppercase text-xs border-2 border-primary hover:bg-black hover:text-primary transition-all flex items-center justify-center gap-2"
+        className="flex-1 py-2 px-3 bg-primary text-black font-bold uppercase text-xs border-2 border-primary hover:bg-background hover:text-primary transition-all flex items-center justify-center gap-2"
         title="Salvar ficha em arquivo JSON"
       >
         <Download size={16} />
@@ -82,7 +82,7 @@ export default function SaveLoad({ characterData, onLoadCharacter }: SaveLoadPro
 
       <button
         onClick={handleLoadClick}
-        className="flex-1 py-2 px-3 bg-black text-primary font-bold uppercase text-xs border-2 border-primary hover:bg-primary hover:text-black transition-all flex items-center justify-center gap-2"
+        className="flex-1 py-2 px-3 bg-background text-primary font-bold uppercase text-xs border-2 border-primary hover:bg-primary hover:text-black transition-all flex items-center justify-center gap-2"
         title="Carregar ficha de arquivo JSON"
       >
         <Upload size={16} />

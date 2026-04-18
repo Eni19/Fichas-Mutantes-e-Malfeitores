@@ -60,7 +60,7 @@ export default function InventoryPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-16 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-background border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
+          className={`group fixed top-28 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-background border-2 border-[#0077da] hover:bg-[#0077da] hover:text-white flex items-center justify-start text-[#0077da] transition-all duration-300 ${
             isOpen ? 'right-[21rem]' : 'right-0'
           }`}
         >
@@ -74,20 +74,20 @@ export default function InventoryPanel({
       )}
 
       {/* Panel Content */}
-      <div className={`fixed right-0 top-0 h-screen bg-background transition-all duration-300 flex flex-col ${isOpen ? 'w-[21rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
+      <div className={`fixed right-0 top-0 h-screen bg-background transition-all duration-300 flex flex-col ${isOpen ? 'w-[21rem] border-l-2 border-[#0077da]' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
 
       {/* Content */}
       {isOpen && (
         <ScrollArea className="flex-1 overflow-hidden">
           <div className="p-4 space-y-4 pr-4">
-            <div className="border border-primary bg-background p-2 space-y-2">
+            <div className="border border-[#0077da] bg-background p-2 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] font-bold uppercase text-primary">Iniciativa</div>
+                <div className="text-[10px] font-bold uppercase text-[#0077da]">Iniciativa</div>
 
                 <button
                   type="button"
                   onClick={handleRollInitiativeAndClose}
-                  className="h-8 w-8 border border-primary bg-background text-primary font-display text-sm leading-none hover:bg-primary hover:text-background transition-colors flex items-center justify-center"
+                  className="h-8 w-8 border border-[#0077da] bg-background text-[#0077da] font-display text-sm leading-none hover:bg-[#0077da] hover:text-background transition-colors flex items-center justify-center"
                   title="Rolar iniciativa"
                 >
                   {initiative >= 0 ? `+${initiative}` : initiative}
@@ -95,28 +95,28 @@ export default function InventoryPanel({
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] uppercase text-primary">Bonus</div>
+                <div className="text-[10px] uppercase text-[#0077da]">Bonus</div>
                 <select
                   value={enhancedInitiative}
                   onChange={(e) => onEnhancedInitiativeChange(parseInt(e.target.value, 10) || 0)}
-                  className="w-16 bg-input border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary text-[10px] p-1"
+                  className="w-16 bg-input border border-[#0077da] text-[#0077da] text-center focus:outline-none focus:ring-1 focus:ring-[#0077da] text-[10px] p-1"
                 >
                   {Array.from({ length: 6 }, (_, index) => index).map((value) => (
-                    <option key={value} value={value} className="bg-background text-primary">
+                    <option key={value} value={value} className="bg-background text-[#0077da]">
                       {value}
                     </option>
                   ))}
                 </select>
-                <div className="text-[9px] uppercase text-primary/80">+4</div>
+                <div className="text-[9px] uppercase text-[#0077da]/80">+4</div>
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h3 className="font-display text-base text-primary uppercase">Ataques</h3>
+                <h3 className="font-display text-base text-[#0077da] uppercase">Ataques</h3>
                 <button
                   onClick={onAddAttack}
-                  className="btn-occult text-xs px-1.5 py-0.5 flex items-center gap-0.5 flex-shrink-0"
+                  className="border-2 border-[#0077da] bg-background text-[#0077da] text-xs px-1.5 py-0.5 flex items-center gap-0.5 flex-shrink-0 font-bold uppercase transition-all hover:bg-[#0077da] hover:text-white"
                 >
                   <Plus size={10} />
                   ADD
@@ -125,18 +125,18 @@ export default function InventoryPanel({
 
               <div className="space-y-2">
                 {attacks.map((attack) => (
-                  <div key={attack.id} className="border border-primary bg-background p-2 space-y-2">
+                  <div key={attack.id} className="border border-[#0077da] bg-background p-2 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <input
                         type="text"
                         value={attack.name}
                         onChange={(e) => onUpdateAttack(attack.id, 'name', e.target.value)}
-                        className="flex-1 min-w-0 bg-transparent border-b border-primary text-primary font-display text-sm focus:outline-none focus:ring-0 uppercase py-0.5"
+                        className="flex-1 min-w-0 bg-transparent border-b border-[#0077da] text-[#0077da] font-display text-sm focus:outline-none focus:ring-0 uppercase py-0.5"
                         placeholder="Nome do ataque"
                       />
                       <button
                         onClick={() => onDeleteAttack(attack.id)}
-                        className="text-primary hover:text-secondary transition-colors p-0 flex-shrink-0"
+                        className="text-[#0077da] hover:text-secondary transition-colors p-0 flex-shrink-0"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -144,35 +144,35 @@ export default function InventoryPanel({
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <div className="text-[10px] font-bold uppercase text-primary mb-1">Teste</div>
+                        <div className="text-[10px] font-bold uppercase text-[#0077da] mb-1">Teste</div>
                         <input
                           type="number"
                           value={attack.test}
                           onChange={(e) => onUpdateAttack(attack.id, 'test', parseInt(e.target.value, 10) || 0)}
-                          className="w-full bg-input border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary text-xs p-1"
+                          className="w-full bg-input border border-[#0077da] text-[#0077da] text-center focus:outline-none focus:ring-1 focus:ring-[#0077da] text-xs p-1"
                           placeholder="0"
                         />
                       </div>
 
                       <div>
-                        <div className="text-[10px] font-bold uppercase text-primary mb-1">Critico</div>
+                        <div className="text-[10px] font-bold uppercase text-[#0077da] mb-1">Critico</div>
                         <input
                           type="number"
                           value={attack.critical}
                           onChange={(e) => onUpdateAttack(attack.id, 'critical', parseInt(e.target.value, 10) || 0)}
-                          className="w-full bg-input border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary text-xs p-1"
+                          className="w-full bg-input border border-[#0077da] text-[#0077da] text-center focus:outline-none focus:ring-1 focus:ring-[#0077da] text-xs p-1"
                           placeholder="0"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-[10px] font-bold uppercase text-primary mb-1">Teste de resistencia</div>
+                      <div className="text-[10px] font-bold uppercase text-[#0077da] mb-1">Teste de resistencia</div>
                       <input
                         type="text"
                         value={attack.resistanceTest}
                         onChange={(e) => onUpdateAttack(attack.id, 'resistanceTest', e.target.value)}
-                        className="w-full bg-input border border-primary text-primary text-xs p-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="w-full bg-input border border-[#0077da] text-[#0077da] text-xs p-1 focus:outline-none focus:ring-1 focus:ring-[#0077da]"
                         placeholder="Ex: Fortitude DT 15"
                       />
                     </div>
@@ -181,14 +181,14 @@ export default function InventoryPanel({
                       value={attack.effect}
                       onChange={(e) => onUpdateAttack(attack.id, 'effect', e.target.value)}
                       onInput={(e) => autoResizeTextarea(e.currentTarget)}
-                      className="w-full bg-transparent border border-primary text-muted-foreground text-xs p-1 focus:outline-none focus:ring-1 focus:ring-primary resize-none overflow-hidden"
+                      className="w-full bg-transparent border border-[#0077da] text-muted-foreground text-xs p-1 focus:outline-none focus:ring-1 focus:ring-[#0077da] resize-none overflow-hidden"
                       placeholder="Efeito"
                       rows={2}
                     />
 
                     <button
                       onClick={() => handleRollAndClose(attack.id)}
-                      className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold uppercase border border-red-500 transition-all text-xs"
+                      className="w-full py-2 bg-[#0077da] hover:bg-[#0062b5] text-white font-bold uppercase border border-[#0077da] transition-all text-xs"
                     >
                       <Dice6 className="inline mr-1" size={14} />
                       Rolar d20 + Teste

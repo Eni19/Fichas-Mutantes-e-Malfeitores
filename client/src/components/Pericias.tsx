@@ -60,14 +60,14 @@ export default function Pericias({
             pericias.map((pericia) => (
               <div
                 key={pericia.id}
-                className="group border border-primary p-1 transition-colors duration-200 bg-background hover:bg-primary flex items-center gap-1"
+                className="group border border-primary p-1 transition-colors duration-200 bg-background hover:bg-background flex items-center gap-1"
               >
                 {/* Nome */}
                 <input
                   type="text"
                   value={pericia.name}
                   onChange={(e) => onUpdatePericia(pericia.id, 'name', e.target.value)}
-                  className="w-24 bg-transparent border border-primary font-display text-xs focus:outline-none focus:ring-0 uppercase px-1 py-0.5 h-7 text-foreground group-hover:border-background"
+                  className="w-24 bg-transparent border border-primary font-display text-xs focus:outline-none focus:ring-0 uppercase px-1 py-0.5 h-7 text-foreground group-hover:bg-background group-hover:text-primary"
                   placeholder="Nome"
                 />
 
@@ -75,7 +75,7 @@ export default function Pericias({
                 <select
                   value={pericia.attribute}
                   onChange={(e) => onUpdatePericia(pericia.id, 'attribute', e.target.value)}
-                  className="w-20 border border-primary text-xs p-0.5 focus:outline-none h-7 bg-transparent text-primary group-hover:border-background"
+                  className="w-20 border border-primary text-xs p-0.5 focus:outline-none h-7 bg-transparent text-primary group-hover:bg-background group-hover:text-primary"
                 >
                   {ATTRIBUTE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value} className="bg-background text-primary">
@@ -96,7 +96,7 @@ export default function Pericias({
                     )
                   }
                   style={{ fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}
-                  className="w-12 h-7 bg-transparent border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary p-0.5 text-xs group-hover:border-background placeholder:text-primary/50"
+                  className="w-12 h-7 bg-transparent border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary p-0.5 text-xs group-hover:bg-background group-hover:text-primary placeholder:text-primary/50"
                   min="0"
                   title="Graduação"
                   placeholder="grad"
@@ -114,7 +114,7 @@ export default function Pericias({
                     )
                   }
                   style={{ fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}
-                  className="w-12 h-7 bg-transparent border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary p-0.5 text-xs group-hover:border-background placeholder:text-primary/50"
+                  className="w-12 h-7 bg-transparent border border-primary text-primary text-center focus:outline-none focus:ring-1 focus:ring-primary p-0.5 text-xs group-hover:bg-background group-hover:text-primary placeholder:text-primary/50"
                   title="Outros"
                   placeholder="out"
                 />
@@ -130,7 +130,7 @@ export default function Pericias({
                 {/* Botão Deletar */}
                 <button
                   onClick={() => onDeletePericia(pericia.id)}
-                  className="transition-colors p-0 flex-shrink-0 h-7 w-7 border border-primary text-primary flex items-center justify-center hover:text-secondary group-hover:border-background text-xs"
+                  className="transition-colors p-0 flex-shrink-0 h-7 w-7 border border-primary text-primary bg-background flex items-center justify-center hover:bg-background hover:text-primary text-xs"
                   aria-label="Remover pericia"
                 >
                   <Trash2 size={12} />
