@@ -18,6 +18,8 @@ export default function SaveLoad({ characterData, onLoadCharacter }: SaveLoadPro
       attributes: characterData.attributes,
       skills: characterData.skills,
       pericias: characterData.pericias,
+      wounds: characterData.wounds,
+      defenses: characterData.defenses,
       hp: characterData.hp,
       sanity: characterData.sanity,
       damageThresholds: characterData.damageThresholds,
