@@ -1,4 +1,4 @@
-# Conceitos de Design - Ficha Daggerheart RPG
+# Conceitos de Design - Ficha Academia de Lyon RPG
 
 ## Resposta 1: Dark Occult Minimalism (Probabilidade: 0.08)
 
@@ -17,7 +17,7 @@ O vermelho é o único acento cromático, representando sangue, poder e perigo. 
 Divisão em três zonas: (1) Coluna esquerda fixa com atributos em hexágonos vermelhos, (2) Centro com informações do personagem e habilidades em cards com bordas vermelhas, (3) Espaço flutuante para rolagem de dados com animação de impacto.
 
 **Elementos Assinatura:**
-- Hexágonos vermelhos para cada atributo (referência ao símbolo do Daggerheart)
+- Hexágonos vermelhos para cada atributo (referência ao símbolo da Academia de Lyon)
 - Bordas vermelhas com efeito de "corte" em cards
 - Tipografia em todas as maiúsculas para títulos, criando agressividade visual
 

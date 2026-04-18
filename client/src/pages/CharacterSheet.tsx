@@ -7,13 +7,15 @@ import DefensePanel from '@/components/DefensePanel';
 import Pericias from '@/components/Pericias';
 import HopeCounter from '@/components/HopeCounter';
 import InventoryPanel from '@/components/InventoryPanel';
+import AdvantagesPanel from '@/components/AdvantagesPanel';
 import InsanityPanel from '@/components/InsanityPanel';
 import type { ConditionId } from '@/components/InsanityPanel';
 import { CONDITIONS } from '@/components/InsanityPanel';
+import { CONDITION_BY_ID } from '@/components/InsanityPanel';
 import SaveLoad from '@/components/SaveLoad';
 
 /**
- * Dark Occult Minimalism - Ficha de RPG Daggerheart
+ * Dark Occult Minimalism - Ficha de RPG Academia de Lyon
  * 
  * Estrutura:
  * - Topo: Nome do personagem
@@ -65,6 +67,13 @@ interface InventoryItem {
   description: string;
 }
 
+interface Advantage {
+  id: string;
+  name: string;
+  description: string;
+  graduation: number;
+}
+
 interface Attack {
   id: string;
   name: string;
@@ -98,6 +107,8 @@ interface CharacterData {
   armor: number;
   evasion: number;
   attacks: Attack[];
+  advantages: Advantage[];
+  inventoryItems: InventoryItem[];
   activeConditions: ConditionId[];
 }
 
@@ -105,6 +116,8 @@ interface SkillRollRequest {
   id: number;
   periciaName: string;
   attributeLabel: string;
+  baseBonus: number;
+  modifierBreakdown: number[];
   totalBonus: number;
 }
 
@@ -121,7 +134,7 @@ const ATTRIBUTE_LABELS: Record<keyof CharacterData['attributes'], string> = {
 
 export default function CharacterSheet() {
   const [pendingRoll, setPendingRoll] = useState<SkillRollRequest | null>(null);
-  const [openSidebar, setOpenSidebar] = useState<'attacks' | 'insanity' | null>(null);
+  const [openSidebar, setOpenSidebar] = useState<'attacks' | 'insanity' | 'advantages' | null>(null);
   const [character, setCharacter] = useState<CharacterData>({
     name: 'Seu Personagem',
     attributes: {
@@ -155,24 +168,48 @@ export default function CharacterSheet() {
     armor: 0,
     evasion: 0,
     attacks: [],
+    advantages: [],
+    inventoryItems: [],
     activeConditions: [],
   });
 
   const hasCondition = (conditionId: ConditionId) => character.activeConditions.includes(conditionId);
 
+  const getGlobalTestModifierBreakdown = () => {
+    const modifiers: number[] = [];
+
+    if (hasCondition('prejudicado')) modifiers.push(-2);
+    if (hasCondition('desabilitado')) modifiers.push(-5);
+
+    return modifiers;
+  };
+
   const getGlobalTestModifier = () => {
-    let modifier = 0;
-
-    if (hasCondition('prejudicado')) modifier -= 2;
-    if (hasCondition('desabilitado')) modifier -= 5;
-
-    return modifier;
+    return getGlobalTestModifierBreakdown().reduce((total, modifier) => total + modifier, 0);
   };
 
   const getConditionEffectsForWounds = () => {
     return CONDITIONS
       .filter((condition) => character.activeConditions.includes(condition.id))
-      .map((condition) => `${condition.name}: ${condition.effect}`);
+      .map((condition) => `${condition.name}: ${condition.effect}${condition.details ? ` (${condition.details})` : ''}`);
+  };
+
+  const expandConditionIds = (ids: ConditionId[]) => {
+    const expanded = new Set<ConditionId>();
+
+    const visit = (conditionId: ConditionId) => {
+      if (expanded.has(conditionId)) return;
+
+      expanded.add(conditionId);
+
+      const condition = CONDITION_BY_ID[conditionId];
+      if (!condition?.components) return;
+
+      condition.components.forEach((componentId) => visit(componentId));
+    };
+
+    ids.forEach((conditionId) => visit(conditionId));
+    return [...expanded];
   };
 
   const applyActiveDefenseCondition = (defenseKey: DefenseKey, total: number) => {
@@ -282,12 +319,16 @@ export default function CharacterSheet() {
     if (!pericia) return;
 
     const attributeValue = character.attributes[pericia.attribute];
-    const totalBonus = attributeValue + pericia.graduation + pericia.others + getGlobalTestModifier();
+    const baseBonus = attributeValue + pericia.graduation + pericia.others;
+    const modifierBreakdown = getGlobalTestModifierBreakdown();
+    const totalBonus = baseBonus + modifierBreakdown.reduce((total, modifier) => total + modifier, 0);
 
     setPendingRoll({
       id: Date.now(),
       periciaName: pericia.name || 'Pericia sem nome',
       attributeLabel: ATTRIBUTE_LABELS[pericia.attribute],
+      baseBonus,
+      modifierBreakdown,
       totalBonus: totalBonus,
     });
   };
@@ -301,12 +342,16 @@ export default function CharacterSheet() {
   };
 
   const handleRollInitiative = () => {
-    const initiativeBonus = character.attributes.agilidade + character.enhancedInitiative * 4 + getGlobalTestModifier();
+    const baseBonus = character.attributes.agilidade + character.enhancedInitiative * 4;
+    const modifierBreakdown = getGlobalTestModifierBreakdown();
+    const initiativeBonus = baseBonus + modifierBreakdown.reduce((total, modifier) => total + modifier, 0);
 
     setPendingRoll({
       id: Date.now(),
       periciaName: 'Iniciativa',
       attributeLabel: 'Iniciativa',
+      baseBonus,
+      modifierBreakdown,
       totalBonus: initiativeBonus,
     });
   };
@@ -336,12 +381,18 @@ export default function CharacterSheet() {
     const adjustedWithWounds = defenseKey === 'resistencia'
       ? adjustedDefense - Math.max(0, character.wounds)
       : adjustedDefense;
-    const adjustedTotal = adjustedWithWounds + getGlobalTestModifier();
+    const modifierBreakdown = [
+      ...getGlobalTestModifierBreakdown(),
+      ...(defenseKey === 'resistencia' && character.wounds > 0 ? [-Math.max(0, character.wounds)] : []),
+    ];
+    const adjustedTotal = adjustedWithWounds + modifierBreakdown.reduce((total, modifier) => total + modifier, 0);
 
     setPendingRoll({
       id: Date.now(),
       periciaName: defenseName,
       attributeLabel,
+      baseBonus: adjustedWithWounds,
+      modifierBreakdown,
       totalBonus: adjustedTotal,
     });
   };
@@ -379,12 +430,17 @@ export default function CharacterSheet() {
     if (!attack) return;
 
     const resistanceLabel = attack.resistanceTest.trim() || '-';
+    const baseBonus = attack.test;
+    const modifierBreakdown = getGlobalTestModifierBreakdown();
+    const totalBonus = baseBonus + modifierBreakdown.reduce((total, modifier) => total + modifier, 0);
 
     setPendingRoll({
       id: Date.now(),
       periciaName: attack.name || 'Ataque sem nome',
       attributeLabel: `Resistencia: ${resistanceLabel} | Critico: ${attack.critical}`,
-      totalBonus: attack.test + getGlobalTestModifier(),
+      baseBonus,
+      modifierBreakdown,
+      totalBonus,
     });
   };
 
@@ -396,12 +452,78 @@ export default function CharacterSheet() {
     setOpenSidebar((prev) => (prev === 'insanity' ? null : 'insanity'));
   };
 
+  const toggleAdvantagesPanel = () => {
+    setOpenSidebar((prev) => (prev === 'advantages' ? null : 'advantages'));
+  };
+
+  const handleAddAdvantage = () => {
+    const newAdvantage: Advantage = {
+      id: Date.now().toString(),
+      name: 'Nova Vantagem',
+      description: '',
+      graduation: 0,
+    };
+
+    setCharacter((prev) => ({
+      ...prev,
+      advantages: [...prev.advantages, newAdvantage],
+    }));
+  };
+
+  const handleUpdateAdvantage = (id: string, field: keyof Advantage, value: string | number) => {
+    setCharacter((prev) => ({
+      ...prev,
+      advantages: prev.advantages.map((advantage) =>
+        advantage.id === id ? { ...advantage, [field]: value } : advantage
+      ),
+    }));
+  };
+
+  const handleDeleteAdvantage = (id: string) => {
+    setCharacter((prev) => ({
+      ...prev,
+      advantages: prev.advantages.filter((advantage) => advantage.id !== id),
+    }));
+  };
+
+  const handleAddInventoryItem = () => {
+    const newItem: InventoryItem = {
+      id: Date.now().toString(),
+      name: 'Novo Item',
+      description: '',
+    };
+
+    setCharacter((prev) => ({
+      ...prev,
+      inventoryItems: [...prev.inventoryItems, newItem],
+    }));
+  };
+
+  const handleUpdateInventoryItem = (id: string, field: keyof InventoryItem, value: string) => {
+    setCharacter((prev) => ({
+      ...prev,
+      inventoryItems: prev.inventoryItems.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const handleDeleteInventoryItem = (id: string) => {
+    setCharacter((prev) => ({
+      ...prev,
+      inventoryItems: prev.inventoryItems.filter((item) => item.id !== id),
+    }));
+  };
+
   const handleToggleCondition = (conditionId: ConditionId) => {
+    const isActive = character.activeConditions.includes(conditionId);
+    const relatedConditionIds = expandConditionIds([conditionId]);
+
     setCharacter({
       ...character,
-      activeConditions: character.activeConditions.includes(conditionId)
-        ? character.activeConditions.filter((id) => id !== conditionId)
-        : [...character.activeConditions, conditionId],
+      activeConditions: isActive
+        ? character.activeConditions.filter((id) => !relatedConditionIds.includes(id))
+        : [...new Set([...character.activeConditions, ...relatedConditionIds])],
     });
   };
 
@@ -431,6 +553,8 @@ export default function CharacterSheet() {
           modifiers?: SkillModifier[] | string;
         }
       >;
+      advantages?: Advantage[];
+      inventoryItems?: InventoryItem[];
       activeConditions?: ConditionId[];
       conditions?: ConditionId[];
     }
@@ -530,6 +654,8 @@ export default function CharacterSheet() {
       skills: loadedSkills.length > 0 ? loadedSkills : prev.skills,
       attacks: loadedAttacks.length > 0 ? loadedAttacks : prev.attacks,
       pericias: loadedPericias.length > 0 ? loadedPericias : prev.pericias,
+      advantages: Array.isArray(data.advantages) ? data.advantages : prev.advantages,
+      inventoryItems: Array.isArray(data.inventoryItems) ? data.inventoryItems : prev.inventoryItems,
       defenses: {
         esquiva: Number(data.defenses?.esquiva ?? prev.defenses.esquiva),
         aparar: Number(data.defenses?.aparar ?? prev.defenses.aparar),
@@ -549,7 +675,7 @@ export default function CharacterSheet() {
     <div className="min-h-screen bg-background text-foreground font-mono overflow-hidden flex flex-col">
       {/* Header */}
       <div className="border-b-2 border-primary bg-background p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none">
-        <h1 className="font-display text-2xl md:text-4xl text-primary">ORDEM DA VERDADE</h1>
+        <h1 className="font-display text-2xl md:text-4xl text-primary">ACADEMIA DE LYON</h1>
         <input
           type="text"
           value={character.name}
@@ -646,7 +772,7 @@ export default function CharacterSheet() {
       {/* Attacks Panel - Retractable Sidebar */}
       <InventoryPanel
         isOpen={openSidebar === 'attacks'}
-        showToggle={openSidebar !== 'insanity'}
+        showToggle={openSidebar !== 'insanity' && openSidebar !== 'advantages'}
         onToggle={toggleAttacksPanel}
         initiative={character.attributes.agilidade + character.enhancedInitiative * 4}
         enhancedInitiative={character.enhancedInitiative}
@@ -662,10 +788,24 @@ export default function CharacterSheet() {
       {/* Insanity Panel - Second Retractable Sidebar */}
       <InsanityPanel
         isOpen={openSidebar === 'insanity'}
-        showToggle={openSidebar !== 'attacks'}
+        showToggle={openSidebar !== 'attacks' && openSidebar !== 'advantages'}
         onToggle={toggleInsanityPanel}
         activeConditions={character.activeConditions}
         onToggleCondition={handleToggleCondition}
+      />
+
+      <AdvantagesPanel
+        isOpen={openSidebar === 'advantages'}
+        showToggle={openSidebar !== 'attacks' && openSidebar !== 'insanity'}
+        onToggle={toggleAdvantagesPanel}
+        advantages={character.advantages}
+        onAddAdvantage={handleAddAdvantage}
+        onUpdateAdvantage={handleUpdateAdvantage}
+        onDeleteAdvantage={handleDeleteAdvantage}
+        inventoryItems={character.inventoryItems}
+        onAddInventoryItem={handleAddInventoryItem}
+        onUpdateInventoryItem={handleUpdateInventoryItem}
+        onDeleteInventoryItem={handleDeleteInventoryItem}
       />
     </div>
   );

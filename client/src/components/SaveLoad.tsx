@@ -23,6 +23,8 @@ export default function SaveLoad({ characterData, onLoadCharacter }: SaveLoadPro
       armor: characterData.armor,
       evasion: characterData.evasion,
       attacks: characterData.attacks,
+      advantages: characterData.advantages,
+      inventoryItems: characterData.inventoryItems,
       activeConditions: characterData.activeConditions,
     };
 

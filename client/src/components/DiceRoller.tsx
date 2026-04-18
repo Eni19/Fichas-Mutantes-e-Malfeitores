@@ -12,6 +12,8 @@ interface SkillRollRequest {
   id: number;
   periciaName: string;
   attributeLabel: string;
+  baseBonus: number;
+  modifierBreakdown: number[];
   totalBonus: number;
 }
 
@@ -31,11 +33,13 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
   const [displayMode, setDisplayMode] = useState<'skill' | 'custom'>('skill');
   const [customFormula, setCustomFormula] = useState('');
   const [displaySubtitle, setDisplaySubtitle] = useState<string | null>(null);
-  const [displayModifier, setDisplayModifier] = useState(0);
+  const [displayBaseBonus, setDisplayBaseBonus] = useState(0);
+  const [displayModifiers, setDisplayModifiers] = useState<number[]>([]);
   const [showSkillTotal, setShowSkillTotal] = useState(false);
 
   const diceTypes = [4, 6, 8, 10, 12, 20];
   const maxDice = 10;
+  const displayModifierTotal = displayBaseBonus + displayModifiers.reduce((sum, modifier) => sum + modifier, 0);
 
   const rollCustomDice = () => {
     if (isRolling) return;
@@ -43,7 +47,8 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
     setDisplayMode('custom');
     setCustomFormula(`${numDice}d${diceType}`);
     setDisplaySubtitle(null);
-    setDisplayModifier(0);
+    setDisplayBaseBonus(0);
+    setDisplayModifiers([]);
     setDisplayMessage(null);
     setDisplayFlash(null);
     setIsRolling(true);
@@ -90,7 +95,8 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
 
     lastProcessedRollIdRef.current = rollRequest.id;
     setDisplayMode('skill');
-    setDisplayModifier(rollRequest.totalBonus);
+    setDisplayBaseBonus(rollRequest.baseBonus);
+    setDisplayModifiers(rollRequest.modifierBreakdown);
 
     setDisplayMessage(null);
     setDisplayFlash(null);
@@ -153,7 +159,13 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
               <div className="font-bold text-red-400 uppercase">{rollRequest.periciaName}</div>
               <div>{rollRequest.attributeLabel}</div>
               <div className="text-red-400">
-                1d20 {rollRequest.totalBonus >= 0 ? '+' : '-'} {Math.abs(rollRequest.totalBonus)}
+                {[
+                  '1d20',
+                  rollRequest.baseBonus !== 0 ? (rollRequest.baseBonus > 0 ? `+ ${rollRequest.baseBonus}` : `- ${Math.abs(rollRequest.baseBonus)}`) : null,
+                  ...rollRequest.modifierBreakdown.map((modifier) => (modifier > 0 ? `+ ${modifier}` : `- ${Math.abs(modifier)}`)),
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               </div>
             </>
           ) : displayMode === 'custom' && customFormula ? (
@@ -172,12 +184,18 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
               {displayRolls[0] === undefined
                 ? '-'
                 : showSkillTotal
-                  ? displayRolls[0] + displayModifier
+                  ? displayRolls[0] + displayBaseBonus + displayModifiers.reduce((sum, modifier) => sum + modifier, 0)
                   : displayRolls[0]}
             </div>
             <div className="text-[10px] uppercase tracking-wide font-bold text-center text-blue-400 mb-2">
               {showSkillTotal
-                ? `Resultado somado (${displayRolls[0] ?? '-'} + ${displayModifier})`
+                ? `Resultado somado (${[
+                    displayRolls[0] ?? '-',
+                    displayBaseBonus !== 0 ? (displayBaseBonus > 0 ? `+ ${displayBaseBonus}` : `- ${Math.abs(displayBaseBonus)}`) : null,
+                    ...displayModifiers.map((modifier) => (modifier > 0 ? `+ ${modifier}` : `- ${Math.abs(modifier)}`)),
+                  ]
+                    .filter(Boolean)
+                    .join(' ')})`
                 : 'd20 (valor puro)'}
             </div>
 
@@ -204,12 +222,12 @@ export default function DiceRoller({ rollRequest }: DiceRollerProps) {
               {displayRolls.length > 0 ? (
                 <>
                   <div className={`text-3xl font-bold ${isRolling ? 'text-red-300' : 'text-red-400'}`}>
-                    {displayRolls.reduce((a, b) => a + b, 0) + displayModifier}
+                    {displayRolls.reduce((a, b) => a + b, 0) + displayModifierTotal}
                   </div>
                   {!isRolling && displayRolls.length > 1 && (
                     <div className="text-[9px] text-red-600 font-mono">
                       {displayRolls.join(' + ')}
-                      {displayModifier !== 0 && ` ${displayModifier > 0 ? '+' : '-'} ${Math.abs(displayModifier)}`}
+                      {displayModifierTotal !== 0 && ` ${displayModifierTotal > 0 ? '+' : '-'} ${Math.abs(displayModifierTotal)}`}
                     </div>
                   )}
                 </>
