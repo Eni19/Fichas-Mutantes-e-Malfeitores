@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface AttributeHexagonProps {
   attribute: string;
@@ -21,6 +21,10 @@ export default function AttributeHexagon({ attribute, value, onChange }: Attribu
   const [isEditing, setIsEditing] = useState(false);
   const [tempValue, setTempValue] = useState(value.toString());
 
+  useEffect(() => {
+    setTempValue(value.toString());
+  }, [value]);
+
   const handleSave = () => {
     const parsedValue = parseInt(tempValue) || 0;
     onChange(parsedValue);
@@ -40,7 +44,10 @@ export default function AttributeHexagon({ attribute, value, onChange }: Attribu
     <div className="flex flex-col items-center gap-2">
       <div
         className="w-full aspect-square max-w-20 md:max-w-24 mx-auto bg-background border-2 border-primary hover:shadow-[0_0_10px_rgba(255,23,68,0.35)] transition-all duration-200 cursor-pointer flex items-center justify-center"
-        onClick={() => setIsEditing(true)}
+        onClick={() => {
+          setTempValue(value.toString());
+          setIsEditing(true);
+        }}
       >
         {isEditing ? (
           <input
